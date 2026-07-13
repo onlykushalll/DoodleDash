@@ -1,0 +1,20 @@
+{
+  "name": "Doodle Dash — Draw, Guess, Laugh",
+  "short_name": "Doodle Dash",
+  "description": "A beautiful multiplayer drawing & guessing game.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff8f3",
+  "theme_color": "#ff7a59",
+  "categories": ["games", "entertainment", "social"],
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

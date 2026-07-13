@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js Build Outputs
+/.next/
+/out/
+/build/
+
+# Local SQLite Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+/db/*.db
+/db/*.db-journal
+/db/*.db-shm
+/db/*.db-wal
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+.env*.local
+
+# OS Metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Process IDs and Logs
+*.pid
+*.pid.lock
+*.log
+dev.log
+dev.out.log
+server.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+/coverage/
+
+# Vercel
+.vercel/
+
+# TypeScript Build Info
+*.tsbuildinfo
+next-env.d.ts
+
+# Agent Context & Tool Outputs
+.claude/
+.z-ai-config/
+/agent-ctx/
+/tool-results/
+/skills/
+local-*
+test/
+prompt/
