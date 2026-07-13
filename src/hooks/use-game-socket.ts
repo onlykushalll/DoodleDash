@@ -18,11 +18,23 @@ export function getSocket(): GameSocket {
         window.location.search.includes("XTransformPort") ||
         window.location.port === "81");
 
+    // In production: connect to NEXT_PUBLIC_GAME_SERVER_URL if set.
+    // If not set, fall back to same-origin (works if game server is behind
+    // the same reverse proxy / same Render service).
     const prodWsUrl = process.env.NEXT_PUBLIC_GAME_SERVER_URL || "";
 
     const url = isSandbox
       ? "/?XTransformPort=3003"
-      : prodWsUrl || "";
+      : prodWsUrl;  // empty string = same origin
+
+    // Log a warning if no game server URL is configured (helps debugging)
+    if (!isSandbox && !prodWsUrl && typeof window !== "undefined") {
+      console.warn(
+        "[DoodleDash] NEXT_PUBLIC_GAME_SERVER_URL not set. " +
+        "Connecting to same origin. If the game server is on a separate " +
+        "service, set NEXT_PUBLIC_GAME_SERVER_URL to its URL."
+      );
+    }
 
     socketSingleton = io(url, {
       path: "/socket.io",

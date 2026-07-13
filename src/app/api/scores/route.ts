@@ -1,12 +1,54 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
-// POST /api/scores — record a finished game's results for global leaderboard.
-// Only the host client posts (see GameEndOverlay), so this runs once per game.
-// Uses atomic upsert on the unique `name` field to be race-safe.
+// Simple in-memory rate limiting (per IP, reset every 60s)
+const rateLimit = new Map<string, { count: number; reset: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW = 60_000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimit.get(ip);
+  if (!entry || now > entry.reset) {
+    rateLimit.set(ip, { count: 1, reset: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+// Verify the game-end token (HMAC of scores + room code + timestamp)
+function verifyToken(token: string, body: string): boolean {
+  const secret = process.env.SCORE_SECRET || "doodle-dash-secret-2024";
+  const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // Rate limit
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+    }
+
+    // Verify token
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const token = authHeader.slice(7);
+    const rawBody = await req.text();
+    if (!verifyToken(token, rawBody)) {
+      return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 403 });
+    }
+
+    const body = JSON.parse(rawBody);
     const players: Array<{ name: string; avatar?: string; color?: string; score: number; won?: boolean }> =
       body?.players ?? [];
     if (!Array.isArray(players) || players.length === 0) {
@@ -23,37 +65,26 @@ export async function POST(req: Request) {
 
       await db.playerStat.upsert({
         where: { name },
-        create: {
-          name,
-          avatar,
-          color,
-          games: 1,
-          wins: won ? 1 : 0,
-          bestScore: score,
-          totalScore: score,
-        },
+        create: { name, avatar, color, games: 1, wins: won ? 1 : 0, bestScore: score, totalScore: score },
         update: {
           games: { increment: 1 },
           wins: { increment: won ? 1 : 0 },
-          bestScore: score, // Prisma: setting to a value; we need max, handle below
+          bestScore: score,
           totalScore: { increment: score },
           avatar,
           color,
         },
       });
 
-      // bestScore needs max() — Prisma can't do max in update, so do a second query if needed
       const existing = await db.playerStat.findUnique({ where: { name } });
       if (existing && score > existing.bestScore) {
-        await db.playerStat.update({
-          where: { name },
-          data: { bestScore: score },
-        });
+        await db.playerStat.update({ where: { name }, data: { bestScore: score } });
       }
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e) {
+    console.error("[/api/scores] error:", e);
+    return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
   }
 }

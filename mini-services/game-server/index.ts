@@ -345,9 +345,9 @@ function chooseWord(io: Server, room: ServerRoom, drawerId: string, wordIndex: n
     room.chooseTimeout = null
   }
 
-  // Initial hint reveals only the first letter
-  room.hintRevealedCount = 1
-  room.wordHint = makeWordHint(word, 1)
+  // Initial hint reveals no letters (just word length/underscores)
+  room.hintRevealedCount = 0
+  room.wordHint = makeWordHint(word, 0)
   room.stage = 'drawing'
   room.timeLeft = room.settings.drawTime
   room.canvas = { strokes: [], shapes: [] }
@@ -363,26 +363,7 @@ function chooseWord(io: Server, room: ServerRoom, drawerId: string, wordIndex: n
 
   emitRoomState(io, room)
 
-  // Schedule incremental hint reveals (60%, 30%, 15% of time remaining)
-  const drawTimeMs = room.settings.drawTime * 1000
-  const scheduleHint = (atPct: number, revealCount: number) => {
-    const delay = drawTimeMs * (1 - atPct)
-    const t = setTimeout(() => {
-      try {
-        if (room.stage !== 'drawing') return
-        room.hintRevealedCount = revealCount
-        room.wordHint = makeWordHint(word, revealCount)
-        io.to(room.code).emit('game:hint', { wordHint: room.wordHint })
-        emitRoomState(io, room)
-      } catch (e) {
-        console.error('[game] hint error', e)
-      }
-    }, delay)
-    room.hintTimeouts.push(t)
-  }
-  scheduleHint(0.4, 2) // 60% time remaining → reveal 2 letters
-  scheduleHint(0.7, 3) // 30% time remaining → reveal 3 letters
-  scheduleHint(0.85, 4) // 15% time remaining → reveal 4 letters
+  // NO scheduled letter reveals — per user request, no hints of any type during the game.
 
   // 1s tick + schedule round end
   room.drawInterval = setInterval(() => {
@@ -406,7 +387,7 @@ function chooseWord(io: Server, room: ServerRoom, drawerId: string, wordIndex: n
     } catch (e) {
       console.error('[game] drawEnd error', e)
     }
-  }, drawTimeMs)
+  }, room.settings.drawTime * 1000)
 }
 
 function endRound(io: Server, room: ServerRoom) {
@@ -767,7 +748,10 @@ function handleChat(io: Server, socket: Socket, content: string) {
 const httpServer = createServer()
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   path: '/socket.io',
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: {
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    methods: ['GET', 'POST'],
+  },
   pingTimeout: 60000,
   pingInterval: 25000,
 })

@@ -270,7 +270,7 @@ export function makeWordHint(word: string, revealCount = 0): string {
   const letters = word.split("");
   const indices = letters.map((_, i) => i).filter((i) => /[a-zA-Z0-9]/.test(letters[i]));
   const reveal = new Set<number>();
-  if (indices.length) reveal.add(indices[0]);
+  if (revealCount > 0 && indices.length) reveal.add(indices[0]);
   const pool = [...indices];
   while (reveal.size < Math.min(revealCount, indices.length) && pool.length) {
     const idx = Math.floor(Math.random() * pool.length);

@@ -8,7 +8,8 @@ export async function GET() {
       take: 50,
     });
     return NextResponse.json({ ok: true, leaderboard: top });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message, leaderboard: [] }, { status: 200 });
+  } catch (e) {
+    console.error("[/api/leaderboard] error:", e);
+    return NextResponse.json({ ok: false, error: "Internal error", leaderboard: [] }, { status: 200 });
   }
 }

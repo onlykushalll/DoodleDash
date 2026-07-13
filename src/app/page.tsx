@@ -10,6 +10,8 @@ import { PaintStudio } from "@/components/game/paint/paint-studio";
 import { QueenArrivalOverlay } from "@/components/game/queen-arrival-overlay";
 import { LoadingScreen } from "@/components/game/loading-screen";
 
+import { ConsentBanner } from "@/components/game/consent-banner";
+
 export default function Page() {
   useGameSocket();
 
@@ -63,6 +65,7 @@ export default function Page() {
     <>
       {screen}
       <QueenArrivalOverlay />
+      <ConsentBanner />
     </>
   );
 }

@@ -44,7 +44,7 @@ export function AboutDialog({
                   "Color-blind accessible palette",
                   "High-contrast mode",
                   "ASMR brush sounds",
-                  "5 paper textures",
+                  "3 paper textures",
                   "Custom hand-drawn avatars",
                   "Free cosmetics (frames, colors, borders)",
                   "Player profile + portfolio",
@@ -94,14 +94,32 @@ export function AboutDialog({
             </section>
 
             {/* Privacy */}
-            <section>
-              <h3 className="mb-2 text-lg font-bold">🔒 Privacy</h3>
+            <section className="space-y-3">
+              <h3 className="text-lg font-bold">🔒 Privacy</h3>
               <p className="text-sm text-muted-foreground">
                 Doodle Dash collects <b>no personal data</b>. No accounts, no login, no tracking.
                 Your name, avatar, and drawings exist only during the game session. Profile stats
                 and cosmetics are stored locally in your browser (localStorage). Game state is
                 in-memory on the server and is not persisted.
               </p>
+              <div className="rounded-xl border border-border p-3">
+                <p className="mb-2 text-xs font-semibold">Your Data</p>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  All your data (theme, preferences, profile, buddies) is stored locally in your browser.
+                  No data is sent to any server.
+                </p>
+                <button
+                  onClick={() => {
+                    ["dd-theme", "dd-canvas-prefs", "dd-cosmetics", "dd-buddies", "dd-my-buddy-code", "dd-portfolio", "dd-profile", "dd-word-history", "dd-consent", "dd-loaded"].forEach((key) => {
+                      try { localStorage.removeItem(key); } catch {}
+                    });
+                    window.location.reload();
+                  }}
+                  className="rounded-lg border border-destructive px-3 py-1.5 text-xs font-semibold text-destructive transition hover:bg-destructive hover:text-white cursor-pointer"
+                >
+                  Delete all my local data
+                </button>
+              </div>
             </section>
 
             {/* FAQ */}

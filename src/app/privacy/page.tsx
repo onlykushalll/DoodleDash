@@ -82,9 +82,13 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-foreground">5. Children's Privacy</h2>
+            <h2 className="text-lg font-bold text-foreground">5. Children&apos;s Privacy (COPPA &amp; GDPR)</h2>
             <p>
-              Because Doodle Dash collects absolutely no personally identifiable information (PII), the service is fully compliant with children's privacy regulations including COPPA and GDPR. No child's data is tracked, logged, or processed beyond the immediate gameplay session.
+              Doodle Dash does not knowingly collect any personal information from children under 13.
+              We do not require accounts, email addresses, or any identifiable information. No child&apos;s data is tracked, logged, or processed beyond the immediate gameplay session.
+              If you believe a child under 13 has provided personal information, please contact us
+              and we will delete it immediately. Parents may request deletion of any locally-stored
+              data by clearing the browser&apos;s localStorage or clicking &quot;Delete all my local data&quot; inside the About dialog.
             </p>
           </section>
 

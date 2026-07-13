@@ -235,7 +235,51 @@ export function GameEndOverlay() {
         );
       } catch { /* ignore */ }
     }
-  }, [show, room, meId]);
+
+    if (isHost) {
+      const top = [...room.players].sort((a, b) => b.score - a.score)[0];
+      const payload = {
+        players: room.players.map((p) => ({
+          name: p.name,
+          avatar: p.avatar,
+          color: p.color,
+          score: p.score,
+          won: top ? p.id === top.id : false,
+        })),
+      };
+      const body = JSON.stringify(payload);
+      const secret = process.env.NEXT_PUBLIC_SCORE_SECRET || "doodle-dash-secret-2024";
+
+      const submitScores = async () => {
+        try {
+          const enc = new TextEncoder();
+          const key = await window.crypto.subtle.importKey(
+            "raw",
+            enc.encode(secret),
+            { name: "HMAC", hash: { name: "SHA-256" } },
+            false,
+            ["sign"]
+          );
+          const signature = await window.crypto.subtle.sign("HMAC", key, enc.encode(body));
+          const token = Array.from(new Uint8Array(signature))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
+          await fetch("/api/scores", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body,
+          });
+        } catch (e) {
+          console.error("[scores] failed to submit stats:", e);
+        }
+      };
+      submitScores();
+    }
+  }, [show, room, meId, isHost]);
 
   const top3 = sortedPlayers.slice(0, 3);
   const rest = sortedPlayers.slice(3);

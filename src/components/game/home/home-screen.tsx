@@ -144,6 +144,13 @@ export function HomeScreen({ onPaint }: HomeScreenProps) {
             >
               Privacy Policy
             </Link>
+            <Link
+              href="/terms"
+              className="rounded-full px-2 py-1 transition hover:text-foreground"
+              onClick={() => sfx.click()}
+            >
+              Terms
+            </Link>
             <a
               href="https://kushalneedsmcp.online"
               target="_blank"
