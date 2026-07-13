@@ -21,6 +21,18 @@ export default function Page() {
   // Show loading screen on first visit
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Read ?join=CODE FIRST (before any early return/cleanup return)
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("join");
+    if (code) {
+      try {
+        sessionStorage.setItem("dd-join-code", code.toUpperCase().slice(0, 5));
+      } catch {
+        /* ignore */
+      }
+    }
+
     const seen = sessionStorage.getItem("dd-loaded");
     if (seen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -31,17 +43,6 @@ export default function Page() {
         sessionStorage.setItem("dd-loaded", "1");
       }, 2600);
       return () => clearTimeout(t);
-    }
-
-    // Read ?join=CODE
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("join");
-    if (code) {
-      try {
-        sessionStorage.setItem("dd-join-code", code.toUpperCase().slice(0, 5));
-      } catch {
-        /* ignore */
-      }
     }
   }, []);
 

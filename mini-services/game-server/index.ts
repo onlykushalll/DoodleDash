@@ -21,7 +21,6 @@ import type {
   Stroke,
   ShapeStroke,
   ChatMessage,
-  ChatType,
   GalleryItem,
   Reaction,
   ReactionEmoji,
@@ -301,7 +300,7 @@ function startRound(io: Server, room: ServerRoom) {
 
   // Pick 3 word choices for the drawer
   const difficulty: WordDifficulty = room.settings.difficulty
-  room.wordChoices = pickWords(difficulty, 3)
+  room.wordChoices = pickWords(difficulty, 4, room.usedWords)
 
   console.log(
     `[game] room ${room.code} round ${room.currentRound}: drawer=${room.currentDrawerId} choices=${room.wordChoices.join('|')}`
@@ -340,6 +339,7 @@ function chooseWord(io: Server, room: ServerRoom, drawerId: string, wordIndex: n
 
   room.currentWord = word
   roomWords.set(room.code, word)
+  room.usedWords.add(word.toLowerCase())
   if (room.chooseTimeout) {
     clearTimeout(room.chooseTimeout)
     room.chooseTimeout = null
@@ -1309,7 +1309,7 @@ io.on('connection', (socket) => {
 // Boot
 // ----------------------------------------------------------------------------
 
-const PORT = process.env.PORT || 3003
+const PORT = Number(process.env.PORT) || 3003
 httpServer.listen(PORT, () => {
   console.log(`Doodle Dash game server running on port ${PORT}`)
 })

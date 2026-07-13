@@ -96,6 +96,13 @@ export function useGameSocket() {
         import("sonner").then(({ toast }) => toast.error(message));
       }
     };
+    const onPromoteRequest = ({ needed }: { needed: "drawer" | "guesser" }) => {
+      if (typeof window !== "undefined") {
+        import("sonner").then(({ toast }) =>
+          toast.info(`A ${needed} is needed! Spectators can volunteer to join.`)
+        );
+      }
+    };
     const onYourTurn = ({ wordChoices }: any) => {
       store.getState().setWordChoices(wordChoices);
       sfx.choose();
@@ -198,6 +205,7 @@ export function useGameSocket() {
     socket.on("room:player-left", onPlayerLeft);
     socket.on("room:settings-updated", onSettingsUpdated);
     socket.on("room:error", onError);
+    socket.on("room:promote-request", onPromoteRequest);
     socket.on("game:your-turn", onYourTurn);
     socket.on("game:round-start", onRoundStart);
     socket.on("game:word-chosen", onWordChosen);
@@ -223,6 +231,7 @@ export function useGameSocket() {
       socket.off("room:player-left", onPlayerLeft);
       socket.off("room:settings-updated", onSettingsUpdated);
       socket.off("room:error", onError);
+      socket.off("room:promote-request", onPromoteRequest);
       socket.off("game:your-turn", onYourTurn);
       socket.off("game:round-start", onRoundStart);
       socket.off("game:word-chosen", onWordChosen);
