@@ -153,7 +153,7 @@ export function ChatPanel() {
   const messageCount = chat.length;
 
   return (
-    <Card className="shadow-soft flex h-full flex-col gap-0 overflow-hidden rounded-2xl p-0">
+    <Card className="shadow-soft flex h-[140px] flex-col gap-0 overflow-hidden rounded-2xl p-0 xl:h-full">
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-primary" />

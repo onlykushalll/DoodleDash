@@ -111,16 +111,16 @@ export function PlayScreen() {
         </aside>
 
         {/* Mobile: tabs for scoreboard + chat */}
-        <div className="absolute inset-x-0 bottom-0 z-20 lg:hidden">
-          <Tabs defaultValue="chat" className="glass border-t">
+        <div className="shrink-0 border-t bg-card/95 backdrop-blur lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <Tabs defaultValue="chat" className="glass">
             <TabsList className="m-2 grid w-[calc(100%-1rem)] grid-cols-2">
               <TabsTrigger value="players">Players</TabsTrigger>
               <TabsTrigger value="chat">Chat</TabsTrigger>
             </TabsList>
-            <TabsContent value="players" className="m-0 max-h-52 overflow-y-auto p-2 scroll-soft">
+            <TabsContent value="players" className="m-0 max-h-44 overflow-y-auto p-2 scroll-soft">
               <Scoreboard />
             </TabsContent>
-            <TabsContent value="chat" className="m-0 max-h-52 overflow-hidden p-2">
+            <TabsContent value="chat" className="m-0 max-h-44 overflow-hidden p-2">
               <ChatPanel />
             </TabsContent>
           </Tabs>

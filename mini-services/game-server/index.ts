@@ -1129,6 +1129,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(lookup.roomId)
     if (!room) return null
     if (room.stage !== 'drawing') return null
+    if (room.paused) return null
     if (room.currentDrawerId !== socket.id) return null
     return room
   }

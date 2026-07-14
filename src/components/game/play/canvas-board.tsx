@@ -273,6 +273,7 @@ export function CanvasBoard({
 
   const isDrawer = useGameStore(selectIsDrawer);
   const toolMode = useGameStore((s) => s.toolMode);
+  const isPaused = useGameStore((s) => !!s.room?.paused);
   // Read feature prefs from store (with sensible fallbacks)
   const storeTexture = useGameStore((s) => s.paperTexture);
   const symmetry = useGameStore((s) => s.symmetry);
@@ -789,7 +790,7 @@ export function CanvasBoard({
 
   // ---- Cursor based on tool ----
   const cursorClass =
-    !isDrawer || toolMode === "fill"
+    !isDrawer || isPaused || toolMode === "fill"
       ? "cursor-default"
       : "cursor-crosshair";
 
@@ -823,7 +824,7 @@ export function CanvasBoard({
         className={cn(
           "block h-full w-full touch-none select-none",
           cursorClass,
-          isDrawer ? "pointer-events-auto" : "pointer-events-none"
+          isDrawer && !isPaused ? "pointer-events-auto" : "pointer-events-none"
         )}
         style={{ touchAction: "none" }}
         onPointerDown={handlePointerDown}

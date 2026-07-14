@@ -117,6 +117,7 @@ function ToolButton({
 
 export function DrawingToolbar({ className }: { className?: string }) {
   const isDrawer = useGameStore(selectIsDrawer);
+  const isPaused = useGameStore((s) => !!s.room?.paused);
   const brush = useGameStore((s) => s.brush);
   const shape = useGameStore((s) => s.shape);
   const toolMode = useGameStore((s) => s.toolMode);
@@ -161,7 +162,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
     } catch { /* ignore */ }
   }, [symmetry, paperTexture, brushSounds, cvdMode, highContrast]);
 
-  if (!isDrawer) return null;
+  if (!isDrawer || isPaused) return null;
 
   // CVD-aware palette: swap to CVD colors when cvdMode is on.
   const palette = cvdMode === "off" ? CANVAS_COLORS : CVD_COLORS;
