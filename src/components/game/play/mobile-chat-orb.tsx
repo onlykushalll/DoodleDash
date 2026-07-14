@@ -30,15 +30,7 @@ export function MobileChatOrb() {
     prevLen.current = chat.length;
   }, [chat, meId]);
 
-  // Reset unread when opened
-  useEffect(() => {
-    if (open) {
-      setUnread(0);
-      wasOpen.current = true;
-    } else {
-      wasOpen.current = false;
-    }
-  }, [open]);
+
 
   return (
     <>
@@ -46,7 +38,19 @@ export function MobileChatOrb() {
       <div className="absolute bottom-3 right-3 z-30 lg:hidden">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => { setOpen((v) => !v); sfx.click(); }}
+          onClick={() => {
+            setOpen((v) => {
+              const nextOpen = !v;
+              if (nextOpen) {
+                setUnread(0);
+                wasOpen.current = true;
+              } else {
+                wasOpen.current = false;
+              }
+              return nextOpen;
+            });
+            sfx.click();
+          }}
           className="relative grid h-14 w-14 place-items-center rounded-full bg-grad text-white shadow-float"
           aria-label="Open chat"
         >
@@ -72,7 +76,7 @@ export function MobileChatOrb() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setOpen(false); sfx.click(); }}
+              onClick={() => { setOpen(false); wasOpen.current = false; sfx.click(); }}
               className="absolute inset-0 z-40 bg-black/30 lg:hidden"
             />
             {/* Panel */}
@@ -105,7 +109,7 @@ export function MobileChatOrb() {
                   </button>
                 </div>
                 <button
-                  onClick={() => { setOpen(false); sfx.click(); }}
+                  onClick={() => { setOpen(false); wasOpen.current = false; sfx.click(); }}
                   className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted"
                 >
                   <X className="h-4 w-4" />
