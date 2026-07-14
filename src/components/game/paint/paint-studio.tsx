@@ -79,7 +79,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
   const [shape, setShape] = useState<ShapeType>("line");
   const [toolMode, setToolMode] = useState<ToolMode>("brush");
   const [symmetry, setSymmetry] = useState<0 | 1 | 2 | 4>(0);
-  const [texture, setTexture] = useState<"plain" | "dots" | "grid">("plain");
+  const [texture, setTexture] = useState<"plain" | "dots" | "grid" | "parchment" | "dark">("plain");
   const [clearOpen, setClearOpen] = useState(false);
 
   // ---- Canvas setup ----
@@ -232,7 +232,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
     const dpr = dprRef.current;
     bctx.save();
     bctx.setTransform(1, 0, 0, 1, 0, 0);
-    bctx.fillStyle = "#ffffff";
+    bctx.fillStyle = texture === "dark" ? "#1a1a2e" : texture === "parchment" ? "#f5ecd9" : "#ffffff";
     bctx.fillRect(0, 0, base.width, base.height);
     bctx.restore();
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -412,7 +412,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
     exportCanvas.height = LOGICAL_H;
     const ectx = exportCanvas.getContext("2d");
     if (!ectx) return;
-    ectx.fillStyle = "#ffffff";
+    ectx.fillStyle = texture === "dark" ? "#1a1a2e" : texture === "parchment" ? "#f5ecd9" : "#ffffff";
     ectx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
     // Draw the base canvas scaled up
     const base = baseRef.current;
@@ -432,6 +432,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
   }, [setupCanvas]);
 
   const textureClass = texture === "dots" ? "canvas-dots" : texture === "grid" ? "canvas-grid" : "";
+  const wrapperBg = texture === "dark" ? "#1a1a2e" : texture === "parchment" ? "#f5ecd9" : "#ffffff";
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -461,7 +462,8 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
         <div className="relative min-h-0 flex-1">
           <div
             ref={wrapRef}
-            className={cn("relative h-full w-full overflow-hidden rounded-2xl border bg-white shadow-soft", textureClass)}
+            className={cn("relative h-full w-full overflow-hidden rounded-2xl border shadow-soft", textureClass)}
+            style={{ background: wrapperBg }}
           >
             <canvas
               ref={canvasRef}
@@ -569,6 +571,42 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
             <button onClick={() => { setSymmetry(1); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 1 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipHorizontal className="size-5" /></button>
             <button onClick={() => { setSymmetry(2); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 2 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipVertical className="size-5" /></button>
             <button onClick={() => { setSymmetry(4); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 4 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><Grid2x2 className="size-5" /></button>
+          </div>
+
+          <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
+
+          {/* Paper Texture */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { setTexture("plain"); sfx.click(); }}
+              className={cn("rounded-lg border px-2 py-1 text-xs", texture === "plain" ? "border-transparent bg-grad text-white" : "border-border hover:bg-accent-soft")}
+            >
+              Plain
+            </button>
+            <button
+              onClick={() => { setTexture("dots"); sfx.click(); }}
+              className={cn("rounded-lg border px-2 py-1 text-xs", texture === "dots" ? "border-transparent bg-grad text-white" : "border-border hover:bg-accent-soft")}
+            >
+              Dots
+            </button>
+            <button
+              onClick={() => { setTexture("grid"); sfx.click(); }}
+              className={cn("rounded-lg border px-2 py-1 text-xs", texture === "grid" ? "border-transparent bg-grad text-white" : "border-border hover:bg-accent-soft")}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => { setTexture("parchment"); sfx.click(); }}
+              className={cn("rounded-lg border px-2 py-1 text-xs", texture === "parchment" ? "border-transparent bg-grad text-white" : "border-border hover:bg-accent-soft")}
+            >
+              Parchment
+            </button>
+            <button
+              onClick={() => { setTexture("dark"); sfx.click(); }}
+              className={cn("rounded-lg border px-2 py-1 text-xs", texture === "dark" ? "border-transparent bg-grad text-white" : "border-border hover:bg-accent-soft")}
+            >
+              Dark
+            </button>
           </div>
 
           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />

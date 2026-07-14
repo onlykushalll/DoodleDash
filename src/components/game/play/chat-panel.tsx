@@ -18,9 +18,11 @@ const GUESS_DISABLE_STAGES: GameStage[] = ["choosing"];
 function ChatBubble({
   message,
   isMe,
+  playerColor,
 }: {
   message: ChatMessage;
   isMe: boolean;
+  playerColor?: string;
 }) {
   const { type, name, content, timestamp } = message;
 
@@ -77,9 +79,10 @@ function ChatBubble({
         className={cn(
           "max-w-[85%] rounded-2xl px-3 py-1.5 text-sm shadow-soft",
           mine
-            ? "rounded-br-md bg-grad text-primary-foreground"
+            ? "rounded-br-md text-white"
             : "rounded-bl-md bg-card text-card-foreground border border-border/60"
         )}
+        style={mine && playerColor ? { backgroundColor: playerColor } : undefined}
       >
         {!mine && (
           <div className="mb-0.5 text-[11px] font-bold text-primary/80">
@@ -172,9 +175,17 @@ export function ChatPanel() {
               No messages yet. Say hi 👋
             </div>
           )}
-          {chat.map((m) => (
-            <ChatBubble key={m.id} message={m} isMe={m.playerId === me?.id} />
-          ))}
+          {chat.map((m) => {
+            const player = room?.players.find((p) => p.id === m.playerId);
+            return (
+              <ChatBubble
+                key={m.id}
+                message={m}
+                isMe={m.playerId === me?.id}
+                playerColor={player?.color}
+              />
+            );
+          })}
         </AnimatePresence>
       </div>
 
