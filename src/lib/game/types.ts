@@ -166,6 +166,8 @@ export interface ClientToServerEvents {
   "game:clear": () => void;
   "chat:send": (payload: { content: string }) => void;
   "reaction:send": (payload: { emoji: ReactionEmoji; x: number }) => void;
+  "chat:typing": () => void;
+  "chat:react": (payload: { messageId: string; emoji: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -195,6 +197,8 @@ export interface ServerToClientEvents {
   "game:player-guessed": (payload: { playerId: string; points: number; drawerBonus: number }) => void;
   "game:round-end": (payload: { word: string; scores: Record<string, number>; galleryItem?: GalleryItem }) => void;
   "game:game-end": (payload: { finalScores: Record<string, number> }) => void;
+  "chat:typing": (payload: { playerId: string; name: string }) => void;
+  "chat:reaction": (payload: { messageId: string; emoji: string; playerId: string; name: string }) => void;
 }
 
 // --- Static UI data --------------------------------------------------------

@@ -1254,6 +1254,42 @@ io.on('connection', (socket) => {
     }
   })
 
+  // ----- chat:typing ------------------------------------------------------
+  socket.on('chat:typing', () => {
+    try {
+      const lookup = players.get(socket.id)
+      if (!lookup) return
+      const room = rooms.get(lookup.roomId)
+      if (!room) return
+      const player = room.players.find((p) => p.id === socket.id)
+      if (!player) return
+      // Broadcast to others (not self), throttled by client
+      socket.to(room.code).emit('chat:typing', { playerId: socket.id, name: player.name })
+    } catch (e) {
+      console.error('[chat:typing] error', e)
+    }
+  })
+
+  // ----- chat:react -------------------------------------------------------
+  socket.on('chat:react', (payload) => {
+    try {
+      const lookup = players.get(socket.id)
+      if (!lookup) return
+      const room = rooms.get(lookup.roomId)
+      if (!room) return
+      const player = room.players.find((p) => p.id === socket.id)
+      if (!player) return
+      const messageId = payload?.messageId
+      const emoji = (payload?.emoji || '').slice(0, 4) // limit emoji length
+      if (!messageId || !emoji) return
+      io.to(room.code).emit('chat:reaction', {
+        messageId, emoji, playerId: socket.id, name: player.name,
+      })
+    } catch (e) {
+      console.error('[chat:react] error', e)
+    }
+  })
+
   // ----- reaction:send ----------------------------------------------------
   socket.on('reaction:send', (payload) => {
     try {

@@ -103,6 +103,10 @@ export const sfx = {
     if (muted) return;
     tone(740, 0, 0.06, "sine", 0.06);
   },
+  chatPop() {
+    if (muted) return;
+    tone(880, 0, 0.04, "sine", 0.04);
+  },
   start() {
     if (muted) return;
     tone(392, 0, 0.1, "triangle", 0.14);
