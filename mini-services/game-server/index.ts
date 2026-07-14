@@ -493,7 +493,7 @@ function makePlayer(socketId: string, name: string, avatar: string, color: strin
 
 // Grace period (ms) before a disconnected player is fully removed from a room.
 // Allows page-refresh / brief network drop to reconnect without losing the seat.
-const RECONNECT_GRACE_MS = 20_000
+const RECONNECT_GRACE_MS = 60_000  // 60 seconds — mobile needs more time to reconnect
 const reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 function removePlayerFromRoom(io: Server, socket: Socket, playerId: string, immediate = false) {

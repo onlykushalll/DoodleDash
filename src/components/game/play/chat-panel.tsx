@@ -103,7 +103,7 @@ function ChatBubble({
     >
       <div
         className={cn(
-          "group max-w-[85%] rounded-2xl px-3 py-1.5 text-sm shadow-soft",
+          "group max-w-[80%] min-w-0 rounded-2xl px-3 py-1.5 text-sm shadow-soft",
           mine
             ? "rounded-br-md text-white"
             : "rounded-bl-md bg-card text-card-foreground border border-border/60"
@@ -278,7 +278,7 @@ export function ChatPanel() {
   const messageCount = chat.length;
 
   return (
-    <Card className="shadow-soft flex h-[140px] flex-col gap-0 overflow-hidden rounded-2xl p-0 xl:h-full">
+    <Card className="shadow-soft flex h-full flex-col gap-0 overflow-hidden rounded-none border-0">
       <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-primary" />

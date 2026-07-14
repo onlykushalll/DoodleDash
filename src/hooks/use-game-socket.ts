@@ -231,10 +231,45 @@ export function useGameSocket() {
     socket.on("reaction:show", onReactionShow);
     socket.on("game:queen-arrival", onQueenArrival);
 
+    // ---- Auto-reconnect on app foreground (mobile session persistence) ----
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const socket = getSocket();
+        if (!socket.connected) {
+          console.log("[socket] App foregrounded — reconnecting...");
+          socket.connect();
+        }
+      }
+    };
+
+    // Reconnect on network online event
+    const onOnline = () => {
+      const socket = getSocket();
+      if (!socket.connected) {
+        console.log("[socket] Network back online — reconnecting...");
+        socket.connect();
+      }
+    };
+
+    // Prevent disconnect on page hide (keep connection alive in background)
+    const onPageHide = (e: PageTransitionEvent) => {
+      // Don't close the socket — let the OS suspend it
+      // It'll auto-reconnect when the app returns
+      e.preventDefault();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("pagehide", onPageHide);
+
     // drawing events are consumed by the canvas component directly via getSocket(),
     // not here, to avoid re-renders.
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("pagehide", onPageHide);
+
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);

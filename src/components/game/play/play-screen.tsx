@@ -14,8 +14,8 @@ import { LeaveButton } from "@/components/game/lobby/leave-button";
 import { useGameStore, selectIsDrawer, selectMe } from "@/lib/game/store";
 import { getSocket } from "@/hooks/use-game-socket";
 import { sfx } from "@/lib/game/sound";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Logo } from "@/components/game/logo";
+import { MobileChatOrb } from "./mobile-chat-orb";
 
 export function PlayScreen() {
   const room = useGameStore((s) => s.room);
@@ -92,7 +92,7 @@ export function PlayScreen() {
 
         {/* Center: canvas + toolbar + reactions */}
         <main className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl"}>
+          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl mb-14 lg:mb-0"}>
             <CanvasBoard className="h-full w-full" />
             <ReactionsOverlay className="rounded-2xl" />
             <ReactionBar className="absolute bottom-3 right-3 z-10" />
@@ -110,21 +110,8 @@ export function PlayScreen() {
           <ChatPanel />
         </aside>
 
-        {/* Mobile: tabs for scoreboard + chat */}
-        <div className="shrink-0 border-t bg-card/95 backdrop-blur lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <Tabs defaultValue="chat" className="glass">
-            <TabsList className="m-2 grid w-[calc(100%-1rem)] grid-cols-2">
-              <TabsTrigger value="players">Players</TabsTrigger>
-              <TabsTrigger value="chat">Chat</TabsTrigger>
-            </TabsList>
-            <TabsContent value="players" className="m-0 max-h-44 overflow-y-auto p-2 scroll-soft">
-              <Scoreboard />
-            </TabsContent>
-            <TabsContent value="chat" className="m-0 max-h-44 overflow-hidden p-2">
-              <ChatPanel />
-            </TabsContent>
-          </Tabs>
-        </div>
+        {/* Mobile: floating chat orb + slide-up panel */}
+        <MobileChatOrb />
       </div>
 
       {/* Overlays (self-mount based on room.stage) */}
