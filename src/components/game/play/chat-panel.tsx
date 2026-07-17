@@ -99,11 +99,11 @@ function ChatBubble({
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("my-1 flex flex-col", mine ? "items-end" : "items-start")}
+      className={cn("my-1 relative flex flex-col", mine ? "items-end" : "items-start")}
     >
       <div
         className={cn(
-          "group max-w-[80%] min-w-0 rounded-2xl px-3 py-1.5 text-sm shadow-soft",
+          "group inline-block max-w-[75%] w-fit rounded-2xl px-3 py-1.5 text-sm shadow-soft break-words",
           mine
             ? "rounded-br-md text-white"
             : "rounded-bl-md bg-card text-card-foreground border border-border/60"
@@ -115,32 +115,32 @@ function ChatBubble({
             {name}
           </div>
         )}
-        <div className="break-words leading-snug">
+        <div className="whitespace-pre-wrap break-words leading-snug">
           {highlightMentions(content, myName)}
         </div>
-        {/* Reactions */}
+        {/* Reactions - inline, no layout shift */}
         {reactions && reactions.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-0.5 flex flex-wrap gap-0.5">
             {Object.entries(
               reactions.reduce((acc, r) => {
                 acc[r.emoji] = (acc[r.emoji] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>)
             ).map(([emoji, count]) => (
-              <span key={emoji} className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]" title={reactions.filter(r => r.emoji === emoji).map(r => r.name).join(", ")}>
-                {emoji} {count > 1 && count}
+              <span key={emoji} className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium", mine ? "bg-white/25" : "bg-muted")} title={reactions.filter(r => r.emoji === emoji).map(r => r.name).join(", ")}>
+                {emoji}{count > 1 ? ` ${count}` : ""}
               </span>
             ))}
           </div>
         )}
-        {/* Quick react buttons */}
-        <div className="mt-1 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+        {/* Quick react buttons - absolute positioned to avoid layout shift */}
+        <div className="absolute -top-3 right-1 flex gap-0.5 rounded-full bg-card p-0.5 shadow-soft opacity-0 transition group-hover:opacity-100 z-10">
           {["👍", "😂", "🔥"].map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => onReact?.(emoji)}
-              className="rounded px-1 text-xs hover:bg-white/20 text-white"
+              className={cn("rounded-full px-1.5 py-0.5 text-xs hover:bg-accent-soft", mine ? "text-foreground" : "text-foreground")}
             >
               {emoji}
             </button>
