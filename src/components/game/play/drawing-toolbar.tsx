@@ -168,16 +168,22 @@ export function DrawingToolbar({ className }: { className?: string }) {
   const palette = cvdMode === "off" ? CANVAS_COLORS : CVD_COLORS;
 
   const handleBrush = (b: BrushType) => {
+    const canvas = document.querySelector("canvas");
+    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
     setTool(b);
     setToolMode("brush");
     sfx.pop();
   };
   const handleShape = (sh: ShapeType) => {
+    const canvas = document.querySelector("canvas");
+    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
     setShape(sh);
     setToolMode("shape");
     sfx.pop();
   };
   const handleFill = () => {
+    const canvas = document.querySelector("canvas");
+    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
     setToolMode("fill");
     sfx.pop();
   };

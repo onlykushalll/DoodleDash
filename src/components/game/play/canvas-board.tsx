@@ -103,22 +103,30 @@ function strokePath(ctx: CanvasRenderingContext2D, pts: Point[]) {
   if (pts.length === 0) return;
   if (pts.length === 1) {
     ctx.beginPath();
-    ctx.arc(
-      pts[0].x * W,
-      pts[0].y * H,
-      Math.max(0.5, ctx.lineWidth / 2),
-      0,
-      Math.PI * 2
-    );
+    ctx.arc(pts[0].x * W, pts[0].y * H, Math.max(0.5, ctx.lineWidth / 2), 0, Math.PI * 2);
     ctx.stroke();
     return;
   }
+  if (pts.length === 2) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * W, pts[0].y * H);
+    ctx.lineTo(pts[1].x * W, pts[1].y * H);
+    ctx.stroke();
+    return;
+  }
+  // Catmull-Rom spline for buttery smooth curves
   ctx.beginPath();
   ctx.moveTo(pts[0].x * W, pts[0].y * H);
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = ((pts[i].x + pts[i + 1].x) / 2) * W;
-    const my = ((pts[i].y + pts[i + 1].y) / 2) * H;
-    ctx.quadraticCurveTo(pts[i].x * W, pts[i].y * H, mx, my);
+  for (let i = 0; i < pts.length - 2; i++) {
+    const p0 = pts[i > 0 ? i - 1 : 0];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2 < pts.length ? i + 2 : pts.length - 1];
+    const cp1x = p1.x * W + (p2.x - p0.x) * W / 6;
+    const cp1y = p1.y * H + (p2.y - p0.y) * H / 6;
+    const cp2x = p2.x * W - (p3.x - p1.x) * W / 6;
+    const cp2y = p2.y * H - (p3.y - p1.y) * H / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x * W, p2.y * H);
   }
   ctx.lineTo(pts[pts.length - 1].x * W, pts[pts.length - 1].y * H);
   ctx.stroke();
@@ -512,9 +520,9 @@ export function CanvasBoard({
       if (useGameStore.getState().brushSounds) {
         brushScratch(stroke.brush);
       }
-      // Throttle emit to ~33ms (~30 fps)
+      // Throttle emit to ~16ms (~60 fps) for smoother sync
       const now = performance.now();
-      if (now - lastEmitRef.current >= 33) {
+      if (now - lastEmitRef.current >= 16) {
         socket.emit("game:stroke-point", {
           strokeId: stroke.id,
           x: p.x,

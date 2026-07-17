@@ -1,7 +1,5 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-node_modules
+# Dependencies
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,45 +8,76 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# Next.js Build Outputs
 /.next/
 /out/
+/build/
 
-# production
-/build
+# Local SQLite Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+/db/*.db
+/db/*.db-journal
+/db/*.db-shm
+/db/*.db-wal
 
-# misc
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+.env*.local
+
+# OS Metadata
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# debug
+# Process IDs and Logs
+*.pid
+*.pid.lock
+*.log
+dev.log
+dev.out.log
+server.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# vercel
-.vercel
+# Testing
+/coverage/
 
+# Vercel
+.vercel/
 
-# typescript
+# TypeScript Build Info
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
-*.log
-dev.log
-dev.out.log
-test
-prompt
 
-server.log
-# Skills directory
+# Agent Context & Tool Outputs
+.claude/
+.z-ai-config/
+/agent-ctx/
+/tool-results/
 /skills/
+local-*
+test/
+prompt/

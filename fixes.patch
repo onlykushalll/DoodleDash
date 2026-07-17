@@ -1,0 +1,234 @@
+diff --git a/src/components/game/lobby/leave-button.tsx b/src/components/game/lobby/leave-button.tsx
+index d9f1fd5..200e3ba 100644
+--- a/src/components/game/lobby/leave-button.tsx
++++ b/src/components/game/lobby/leave-button.tsx
+@@ -1,35 +1,26 @@
+ "use client";
+ 
+ import { useState } from "react";
+-import { LogOut } from "lucide-react";
+-import { useGameStore } from "@/lib/game/store";
++import { LogOut, XCircle } from "lucide-react";
++import { useGameStore, selectIsHost } from "@/lib/game/store";
+ import { getSocket } from "@/hooks/use-game-socket";
+ import { sfx } from "@/lib/game/sound";
+ import { Button } from "@/components/ui/button";
+ import {
+-  AlertDialog,
+-  AlertDialogTrigger,
+-  AlertDialogContent,
+-  AlertDialogHeader,
+-  AlertDialogFooter,
+-  AlertDialogTitle,
+-  AlertDialogDescription,
+-  AlertDialogAction,
+-  AlertDialogCancel,
++  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
++  AlertDialogFooter, AlertDialogTitle, AlertDialogDescription,
++  AlertDialogAction, AlertDialogCancel,
+ } from "@/components/ui/alert-dialog";
+ 
+ export function LeaveButton() {
+   const [open, setOpen] = useState(false);
++  const isHost = useGameStore(selectIsHost);
+   const setView = useGameStore((s) => s.setView);
+   const reset = useGameStore((s) => s.reset);
+ 
+   const leave = () => {
+     sfx.close();
+-    try {
+-      getSocket().emit("room:leave");
+-    } catch {
+-      /* socket may be disconnected — ignore */
+-    }
++    try { getSocket().emit("room:leave"); } catch {}
+     reset();
+     setView("home");
+   };
+@@ -37,32 +28,38 @@ export function LeaveButton() {
+   return (
+     <AlertDialog open={open} onOpenChange={setOpen}>
+       <AlertDialogTrigger asChild>
+-        <Button
+-          variant="ghost"
+-          size="sm"
+-          className="text-muted-foreground hover:text-destructive"
+-          aria-label="Leave room"
+-        >
++        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" aria-label="Leave room">
+           <LogOut className="h-4 w-4" />
+           <span className="hidden sm:inline">Leave</span>
+         </Button>
+       </AlertDialogTrigger>
+       <AlertDialogContent className="rounded-2xl">
+         <AlertDialogHeader>
+-          <AlertDialogTitle>Leave the room?</AlertDialogTitle>
++          <AlertDialogTitle>{isHost ? "Leave or Close Room?" : "Leave the room?"}</AlertDialogTitle>
+           <AlertDialogDescription>
+-            You&apos;ll be returned to the home screen. If you&apos;re the host, another player
+-            will become the host.
++            {isHost
++              ? "As the host, you can either leave (another player becomes host) or close the room for everyone."
++              : "You'll be returned to the home screen."}
+           </AlertDialogDescription>
+         </AlertDialogHeader>
+-        <AlertDialogFooter>
+-          <AlertDialogCancel>Stay</AlertDialogCancel>
+-          <AlertDialogAction
+-            onClick={leave}
+-            className="bg-destructive text-white hover:bg-destructive/90"
+-          >
+-            Leave Room
++        <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:gap-2">
++          <AlertDialogAction onClick={leave} className="bg-destructive text-white hover:bg-destructive/90">
++            <LogOut className="mr-1 h-4 w-4" /> Leave Room
+           </AlertDialogAction>
++          {isHost && (
++            <AlertDialogAction
++              onClick={() => {
++                sfx.close();
++                try { getSocket().emit("room:leave"); } catch {}
++                reset();
++                setView("home");
++              }}
++              className="bg-red-700 text-white hover:bg-red-800"
++            >
++              <XCircle className="mr-1 h-4 w-4" /> Close Room for Everyone
++            </AlertDialogAction>
++          )}
++          <AlertDialogCancel>Stay</AlertDialogCancel>
+         </AlertDialogFooter>
+       </AlertDialogContent>
+     </AlertDialog>
+diff --git a/src/components/game/paint/paint-studio.tsx b/src/components/game/paint/paint-studio.tsx
+index 90624e3..1d3fd8d 100644
+--- a/src/components/game/paint/paint-studio.tsx
++++ b/src/components/game/paint/paint-studio.tsx
+@@ -151,12 +151,26 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+       ctx.stroke();
+       return;
+     }
++    if (pts.length === 2) {
++      ctx.beginPath();
++      ctx.moveTo(pts[0].x * W, pts[0].y * H);
++      ctx.lineTo(pts[1].x * W, pts[1].y * H);
++      ctx.stroke();
++      return;
++    }
++    // Catmull-Rom spline for buttery smooth curves
+     ctx.beginPath();
+     ctx.moveTo(pts[0].x * W, pts[0].y * H);
+-    for (let i = 1; i < pts.length - 1; i++) {
+-      const mx = ((pts[i].x + pts[i + 1].x) / 2) * W;
+-      const my = ((pts[i].y + pts[i + 1].y) / 2) * H;
+-      ctx.quadraticCurveTo(pts[i].x * W, pts[i].y * H, mx, my);
++    for (let i = 0; i < pts.length - 2; i++) {
++      const p0 = pts[i > 0 ? i - 1 : 0];
++      const p1 = pts[i];
++      const p2 = pts[i + 1];
++      const p3 = pts[i + 2 < pts.length ? i + 2 : pts.length - 1];
++      const cp1x = p1.x * W + (p2.x - p0.x) * W / 6;
++      const cp1y = p1.y * H + (p2.y - p0.y) * H / 6;
++      const cp2x = p2.x * W - (p3.x - p1.x) * W / 6;
++      const cp2y = p2.y * H - (p3.y - p1.y) * H / 6;
++      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x * W, p2.y * H);
+     }
+     ctx.lineTo(pts[pts.length - 1].x * W, pts[pts.length - 1].y * H);
+     ctx.stroke();
+diff --git a/src/components/game/play/canvas-board.tsx b/src/components/game/play/canvas-board.tsx
+index 6e58cc7..3285d87 100644
+--- a/src/components/game/play/canvas-board.tsx
++++ b/src/components/game/play/canvas-board.tsx
+@@ -103,22 +103,30 @@ function strokePath(ctx: CanvasRenderingContext2D, pts: Point[]) {
+   if (pts.length === 0) return;
+   if (pts.length === 1) {
+     ctx.beginPath();
+-    ctx.arc(
+-      pts[0].x * W,
+-      pts[0].y * H,
+-      Math.max(0.5, ctx.lineWidth / 2),
+-      0,
+-      Math.PI * 2
+-    );
++    ctx.arc(pts[0].x * W, pts[0].y * H, Math.max(0.5, ctx.lineWidth / 2), 0, Math.PI * 2);
++    ctx.stroke();
++    return;
++  }
++  if (pts.length === 2) {
++    ctx.beginPath();
++    ctx.moveTo(pts[0].x * W, pts[0].y * H);
++    ctx.lineTo(pts[1].x * W, pts[1].y * H);
+     ctx.stroke();
+     return;
+   }
++  // Catmull-Rom spline for buttery smooth curves
+   ctx.beginPath();
+   ctx.moveTo(pts[0].x * W, pts[0].y * H);
+-  for (let i = 1; i < pts.length - 1; i++) {
+-    const mx = ((pts[i].x + pts[i + 1].x) / 2) * W;
+-    const my = ((pts[i].y + pts[i + 1].y) / 2) * H;
+-    ctx.quadraticCurveTo(pts[i].x * W, pts[i].y * H, mx, my);
++  for (let i = 0; i < pts.length - 2; i++) {
++    const p0 = pts[i > 0 ? i - 1 : 0];
++    const p1 = pts[i];
++    const p2 = pts[i + 1];
++    const p3 = pts[i + 2 < pts.length ? i + 2 : pts.length - 1];
++    const cp1x = p1.x * W + (p2.x - p0.x) * W / 6;
++    const cp1y = p1.y * H + (p2.y - p0.y) * H / 6;
++    const cp2x = p2.x * W - (p3.x - p1.x) * W / 6;
++    const cp2y = p2.y * H - (p3.y - p1.y) * H / 6;
++    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x * W, p2.y * H);
+   }
+   ctx.lineTo(pts[pts.length - 1].x * W, pts[pts.length - 1].y * H);
+   ctx.stroke();
+@@ -512,9 +520,9 @@ export function CanvasBoard({
+       if (useGameStore.getState().brushSounds) {
+         brushScratch(stroke.brush);
+       }
+-      // Throttle emit to ~33ms (~30 fps)
++      // Throttle emit to ~16ms (~60 fps) for smoother sync
+       const now = performance.now();
+-      if (now - lastEmitRef.current >= 33) {
++      if (now - lastEmitRef.current >= 16) {
+         socket.emit("game:stroke-point", {
+           strokeId: stroke.id,
+           x: p.x,
+diff --git a/src/components/game/play/drawing-toolbar.tsx b/src/components/game/play/drawing-toolbar.tsx
+index 69a8b5c..0c0765a 100644
+--- a/src/components/game/play/drawing-toolbar.tsx
++++ b/src/components/game/play/drawing-toolbar.tsx
+@@ -168,16 +168,22 @@ export function DrawingToolbar({ className }: { className?: string }) {
+   const palette = cvdMode === "off" ? CANVAS_COLORS : CVD_COLORS;
+ 
+   const handleBrush = (b: BrushType) => {
++    const canvas = document.querySelector("canvas");
++    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+     setTool(b);
+     setToolMode("brush");
+     sfx.pop();
+   };
+   const handleShape = (sh: ShapeType) => {
++    const canvas = document.querySelector("canvas");
++    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+     setShape(sh);
+     setToolMode("shape");
+     sfx.pop();
+   };
+   const handleFill = () => {
++    const canvas = document.querySelector("canvas");
++    if (canvas) canvas.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+     setToolMode("fill");
+     sfx.pop();
+   };
+diff --git a/src/lib/game/types.ts b/src/lib/game/types.ts
+index 94a94f7..45aa10e 100644
+--- a/src/lib/game/types.ts
++++ b/src/lib/game/types.ts
+@@ -218,6 +218,7 @@ export const PLAYER_COLORS = [
+ export const CANVAS_COLORS = [
+   "#ffffff", "#c1c1c1", "#ef130b", "#ff7100", "#ffe400", "#00cc00", "#00b2ff", "#231fd3", "#a300ba", "#d37caa", "#a0522d",
+   "#000000", "#4c4c4c", "#740b07", "#c23800", "#e8a200", "#005510", "#00569e", "#0e0865", "#550069", "#a75574", "#63300d",
++  "#ff69b4", "#ffb6c1", "#ffd700", "#90ee90", "#87ceeb", "#dda0dd", "#f0e68c", "#ffe4e1", "#98fb98", "#afeeee", "#e6e6fa",
+ ];
+ 
+ /** Color-blind-safe palette (Okabe-Ito inspired, 22 distinct hues). */
