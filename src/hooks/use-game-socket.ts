@@ -239,6 +239,10 @@ export function useGameSocket() {
           console.log("[socket] App foregrounded — reconnecting...");
           socket.connect();
         }
+      } else if (document.visibilityState === "hidden") {
+        // Tab/backgrounded — the server's grace period handles this.
+        // The socket may disconnect; it'll auto-reconnect on return.
+        console.log("[socket] App backgrounded — socket may suspend, will reconnect on return");
       }
     };
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Home, LogOut, Palette, RefreshCw, Trophy } from "lucide-react";
+import { Home, LogOut, Palette, RefreshCw, Trophy, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -291,6 +291,12 @@ export function GameEndOverlay() {
     getSocket().emit("room:start");
   }
 
+  function handleBackToLobby() {
+    sfx.click();
+    // Just go back to lobby view - don't leave the room
+    useGameStore.getState().setView("lobby");
+  }
+
   function handleLeave() {
     sfx.click();
     getSocket().emit("room:leave");
@@ -413,6 +419,14 @@ export function GameEndOverlay() {
                 >
                   <Palette className="h-4 w-4" />
                   View Gallery
+                </Button>
+                <Button
+                  onClick={handleBackToLobby}
+                  variant="outline"
+                  className="rounded-xl"
+                >
+                  <Users className="h-4 w-4" />
+                  Back to Lobby
                 </Button>
                 {isHost && (
                   <Button

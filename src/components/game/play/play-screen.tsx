@@ -92,7 +92,7 @@ export function PlayScreen() {
 
         {/* Center: canvas + toolbar + reactions */}
         <main className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl mb-14 lg:mb-0"}>
+          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl"}>
             <CanvasBoard className="h-full w-full" />
             <ReactionsOverlay className="rounded-2xl" />
             <ReactionBar className="absolute bottom-3 right-3 z-10" />

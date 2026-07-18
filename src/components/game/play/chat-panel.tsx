@@ -328,7 +328,7 @@ export function ChatPanel() {
         </AnimatePresence>
       </div>
 
-      <div className="border-t border-border/60 p-3">
+      <div className="shrink-0 border-t border-border/60 p-2 sm:p-3">
         {typingUsers.length > 0 && (
           <div className="px-3 pb-1 text-[11px] italic text-muted-foreground animate-pulse">
             {typingUsers.length === 1
@@ -351,7 +351,7 @@ export function ChatPanel() {
             maxLength={120}
             autoComplete="off"
             aria-label={isGuessInput ? "Guess input" : "Chat input"}
-            className="rounded-xl"
+            className="h-11 rounded-xl text-base"
           />
           <Popover>
             <PopoverTrigger asChild>
@@ -403,7 +403,7 @@ export function ChatPanel() {
             size="icon"
             disabled={disableInput || input.trim().length === 0}
             aria-label="Send"
-            className="rounded-xl"
+            className="h-11 rounded-xl text-base"
           >
             <Send className="h-4 w-4" />
           </Button>

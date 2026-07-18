@@ -1,0 +1,140 @@
+diff --git a/src/components/game/play/chat-panel.tsx b/src/components/game/play/chat-panel.tsx
+index 1d0ef0c..cdff0e7 100644
+--- a/src/components/game/play/chat-panel.tsx
++++ b/src/components/game/play/chat-panel.tsx
+@@ -328,7 +328,7 @@ export function ChatPanel() {
+         </AnimatePresence>
+       </div>
+ 
+-      <div className="border-t border-border/60 p-3">
++      <div className="shrink-0 border-t border-border/60 p-2 sm:p-3">
+         {typingUsers.length > 0 && (
+           <div className="px-3 pb-1 text-[11px] italic text-muted-foreground animate-pulse">
+             {typingUsers.length === 1
+@@ -351,7 +351,7 @@ export function ChatPanel() {
+             maxLength={120}
+             autoComplete="off"
+             aria-label={isGuessInput ? "Guess input" : "Chat input"}
+-            className="rounded-xl"
++            className="h-11 rounded-xl text-base"
+           />
+           <Popover>
+             <PopoverTrigger asChild>
+@@ -403,7 +403,7 @@ export function ChatPanel() {
+             size="icon"
+             disabled={disableInput || input.trim().length === 0}
+             aria-label="Send"
+-            className="rounded-xl"
++            className="h-11 rounded-xl text-base"
+           >
+             <Send className="h-4 w-4" />
+           </Button>
+diff --git a/src/components/game/play/game-end-overlay.tsx b/src/components/game/play/game-end-overlay.tsx
+index be10757..3302200 100644
+--- a/src/components/game/play/game-end-overlay.tsx
++++ b/src/components/game/play/game-end-overlay.tsx
+@@ -2,7 +2,7 @@
+ 
+ import * as React from "react";
+ import { AnimatePresence, motion } from "framer-motion";
+-import { Home, LogOut, Palette, RefreshCw, Trophy } from "lucide-react";
++import { Home, LogOut, Palette, RefreshCw, Trophy, Users } from "lucide-react";
+ import { Card } from "@/components/ui/card";
+ import { Button } from "@/components/ui/button";
+ import { Badge } from "@/components/ui/badge";
+@@ -291,6 +291,12 @@ export function GameEndOverlay() {
+     getSocket().emit("room:start");
+   }
+ 
++  function handleBackToLobby() {
++    sfx.click();
++    // Just go back to lobby view - don't leave the room
++    useGameStore.getState().setView("lobby");
++  }
++
+   function handleLeave() {
+     sfx.click();
+     getSocket().emit("room:leave");
+@@ -414,6 +420,14 @@ export function GameEndOverlay() {
+                   <Palette className="h-4 w-4" />
+                   View Gallery
+                 </Button>
++                <Button
++                  onClick={handleBackToLobby}
++                  variant="outline"
++                  className="rounded-xl"
++                >
++                  <Users className="h-4 w-4" />
++                  Back to Lobby
++                </Button>
+                 {isHost && (
+                   <Button
+                     onClick={handlePlayAgain}
+diff --git a/src/components/game/play/mobile-chat-orb.tsx b/src/components/game/play/mobile-chat-orb.tsx
+index eb28e6b..a3b6608 100644
+--- a/src/components/game/play/mobile-chat-orb.tsx
++++ b/src/components/game/play/mobile-chat-orb.tsx
+@@ -35,7 +35,7 @@ export function MobileChatOrb() {
+   return (
+     <>
+       {/* Floating orb (bottom-right, above toolbar) */}
+-      <div className="absolute bottom-3 right-3 z-30 lg:hidden">
++      <div className="absolute bottom-4 right-4 z-30 lg:hidden">
+         <motion.button
+           whileTap={{ scale: 0.9 }}
+           onClick={() => {
+@@ -51,7 +51,7 @@ export function MobileChatOrb() {
+             });
+             sfx.click();
+           }}
+-          className="relative grid h-14 w-14 place-items-center rounded-full bg-grad text-white shadow-float"
++          className="relative grid h-16 w-16 place-items-center rounded-full bg-grad text-white shadow-float active:scale-90 transition-transform"
+           aria-label="Open chat"
+         >
+           <MessageSquare className="h-6 w-6" />
+@@ -85,7 +85,7 @@ export function MobileChatOrb() {
+               animate={{ y: 0 }}
+               exit={{ y: "100%" }}
+               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+-              className="absolute inset-x-0 bottom-0 z-50 max-h-[60vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
++              className="absolute inset-x-0 bottom-0 z-50 max-h-[70vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
+               style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+             >
+               {/* Handle bar */}
+@@ -116,7 +116,7 @@ export function MobileChatOrb() {
+                 </button>
+               </div>
+               {/* Content */}
+-              <div className="h-[40vh] overflow-hidden">
++              <div className="h-[45vh] overflow-hidden">
+                 {tab === "chat" ? <ChatPanel /> : <div className="h-full overflow-y-auto scroll-soft p-2"><Scoreboard /></div>}
+               </div>
+             </motion.div>
+diff --git a/src/components/game/play/play-screen.tsx b/src/components/game/play/play-screen.tsx
+index 025ce24..4da340b 100644
+--- a/src/components/game/play/play-screen.tsx
++++ b/src/components/game/play/play-screen.tsx
+@@ -92,7 +92,7 @@ export function PlayScreen() {
+ 
+         {/* Center: canvas + toolbar + reactions */}
+         <main className="flex min-w-0 flex-1 flex-col gap-2">
+-          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl mb-14 lg:mb-0"}>
++          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl"}>
+             <CanvasBoard className="h-full w-full" />
+             <ReactionsOverlay className="rounded-2xl" />
+             <ReactionBar className="absolute bottom-3 right-3 z-10" />
+diff --git a/src/hooks/use-game-socket.ts b/src/hooks/use-game-socket.ts
+index 1da2076..c3f8c60 100644
+--- a/src/hooks/use-game-socket.ts
++++ b/src/hooks/use-game-socket.ts
+@@ -239,6 +239,10 @@ export function useGameSocket() {
+           console.log("[socket] App foregrounded — reconnecting...");
+           socket.connect();
+         }
++      } else if (document.visibilityState === "hidden") {
++        // Tab/backgrounded — the server's grace period handles this.
++        // The socket may disconnect; it'll auto-reconnect on return.
++        console.log("[socket] App backgrounded — socket may suspend, will reconnect on return");
+       }
+     };
+ 

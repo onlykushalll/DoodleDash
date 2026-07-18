@@ -35,7 +35,7 @@ export function MobileChatOrb() {
   return (
     <>
       {/* Floating orb (bottom-right, above toolbar) */}
-      <div className="absolute bottom-3 right-3 z-30 lg:hidden">
+      <div className="absolute bottom-4 right-4 z-30 lg:hidden">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => {
@@ -51,7 +51,7 @@ export function MobileChatOrb() {
             });
             sfx.click();
           }}
-          className="relative grid h-14 w-14 place-items-center rounded-full bg-grad text-white shadow-float"
+          className="relative grid h-16 w-16 place-items-center rounded-full bg-grad text-white shadow-float active:scale-90 transition-transform"
           aria-label="Open chat"
         >
           <MessageSquare className="h-6 w-6" />
@@ -85,7 +85,7 @@ export function MobileChatOrb() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute inset-x-0 bottom-0 z-50 max-h-[60vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
+              className="absolute inset-x-0 bottom-0 z-50 max-h-[70vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
               style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               {/* Handle bar */}
@@ -116,7 +116,7 @@ export function MobileChatOrb() {
                 </button>
               </div>
               {/* Content */}
-              <div className="h-[40vh] overflow-hidden">
+              <div className="h-[45vh] overflow-hidden">
                 {tab === "chat" ? <ChatPanel /> : <div className="h-full overflow-y-auto scroll-soft p-2"><Scoreboard /></div>}
               </div>
             </motion.div>
