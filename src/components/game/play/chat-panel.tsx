@@ -341,7 +341,7 @@ export function ChatPanel() {
             {hint}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2">
           <Input
             ref={inputRef}
             value={input}
@@ -350,8 +350,12 @@ export function ChatPanel() {
             disabled={disableInput}
             maxLength={120}
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            enterKeyHint="send"
             aria-label={isGuessInput ? "Guess input" : "Chat input"}
-            className="h-11 rounded-xl text-base"
+            className="h-12 rounded-xl text-base border-2 focus-visible:ring-2 focus-visible:ring-ring"
           />
           <Popover>
             <PopoverTrigger asChild>
@@ -360,7 +364,7 @@ export function ChatPanel() {
                 size="icon"
                 variant="outline"
                 disabled={disableInput}
-                className="rounded-xl shrink-0"
+                className="h-12 w-12 rounded-xl shrink-0 text-lg"
                 aria-label="Choose emoji"
               >
                 😀
@@ -403,9 +407,9 @@ export function ChatPanel() {
             size="icon"
             disabled={disableInput || input.trim().length === 0}
             aria-label="Send"
-            className="h-11 rounded-xl text-base"
+            className="h-12 w-12 rounded-xl shrink-0 bg-grad"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </form>
       </div>

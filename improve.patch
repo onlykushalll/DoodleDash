@@ -1,0 +1,140 @@
+diff --git a/mini-services/game-server/index.ts b/mini-services/game-server/index.ts
+index 38b7cfa..2fa2288 100644
+--- a/mini-services/game-server/index.ts
++++ b/mini-services/game-server/index.ts
+@@ -664,8 +664,21 @@ function handleChat(io: Server, socket: Socket, content: string) {
+   if (word && text.toLowerCase() === word.trim().toLowerCase()) {
+     player.guessedThisRound = true
+     const drawTime = Math.max(1, room.settings.drawTime)
+-    const points = Math.round((room.timeLeft / drawTime) * 200) + 50
+-    const drawerBonus = Math.round((room.timeLeft / drawTime) * 40) + 10
++    // Count how many non-drawer players have already guessed (position)
++    const alreadyGuessed = room.players.filter(
++      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator && p.guessedThisRound
++    ).length
++    const totalGuessers = Math.max(1, room.players.filter(
++      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator
++    ).length)
++    // Speed bonus: faster = more points (0-200 range)
++    const speedBonus = Math.round((room.timeLeft / drawTime) * 200)
++    // Position bonus: 1st guesser gets 100, 2nd gets 60, 3rd gets 30, rest get 10
++    const positionBonus = alreadyGuessed === 0 ? 100 : alreadyGuessed === 1 ? 60 : alreadyGuessed === 2 ? 30 : 10
++    // Base points for correct guess
++    const points = 50 + speedBonus + positionBonus
++    // Drawer gets bonus per correct guess (more if early guesses = good drawing)
++    const drawerBonus = Math.round((room.timeLeft / drawTime) * 30) + 15
+     player.score += points
+ 
+     const drawer = room.players.find((p) => p.id === room.currentDrawerId)
+diff --git a/src/components/game/play/chat-panel.tsx b/src/components/game/play/chat-panel.tsx
+index cdff0e7..3032908 100644
+--- a/src/components/game/play/chat-panel.tsx
++++ b/src/components/game/play/chat-panel.tsx
+@@ -341,7 +341,7 @@ export function ChatPanel() {
+             {hint}
+           </div>
+         )}
+-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
++        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2">
+           <Input
+             ref={inputRef}
+             value={input}
+@@ -350,8 +350,12 @@ export function ChatPanel() {
+             disabled={disableInput}
+             maxLength={120}
+             autoComplete="off"
++            autoCorrect="off"
++            autoCapitalize="off"
++            spellCheck={false}
++            enterKeyHint="send"
+             aria-label={isGuessInput ? "Guess input" : "Chat input"}
+-            className="h-11 rounded-xl text-base"
++            className="h-12 rounded-xl text-base border-2 focus-visible:ring-2 focus-visible:ring-ring"
+           />
+           <Popover>
+             <PopoverTrigger asChild>
+@@ -360,7 +364,7 @@ export function ChatPanel() {
+                 size="icon"
+                 variant="outline"
+                 disabled={disableInput}
+-                className="rounded-xl shrink-0"
++                className="h-12 w-12 rounded-xl shrink-0 text-lg"
+                 aria-label="Choose emoji"
+               >
+                 😀
+@@ -403,9 +407,9 @@ export function ChatPanel() {
+             size="icon"
+             disabled={disableInput || input.trim().length === 0}
+             aria-label="Send"
+-            className="h-11 rounded-xl text-base"
++            className="h-12 w-12 rounded-xl shrink-0 bg-grad"
+           >
+-            <Send className="h-4 w-4" />
++            <Send className="h-5 w-5" />
+           </Button>
+         </form>
+       </div>
+diff --git a/src/components/game/play/drawing-toolbar.tsx b/src/components/game/play/drawing-toolbar.tsx
+index 022d36c..e7ccb3d 100644
+--- a/src/components/game/play/drawing-toolbar.tsx
++++ b/src/components/game/play/drawing-toolbar.tsx
+@@ -212,6 +212,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+         className
+       )}
+       role="toolbar"
++      style={{ WebkitOverflowScrolling: "touch" }}
+       aria-label="Drawing tools"
+     >
+       {/* Brushes */}
+diff --git a/src/components/game/play/mobile-chat-orb.tsx b/src/components/game/play/mobile-chat-orb.tsx
+index 7e2df3e..d2dd063 100644
+--- a/src/components/game/play/mobile-chat-orb.tsx
++++ b/src/components/game/play/mobile-chat-orb.tsx
+@@ -35,7 +35,7 @@ export function MobileChatOrb() {
+   return (
+     <>
+       {/* Floating orb (bottom-right, above toolbar) */}
+-      <div className="absolute bottom-4 right-4 z-30 lg:hidden">
++      <div className="absolute bottom-4 right-3 z-30 lg:hidden">
+         <motion.button
+           whileTap={{ scale: 0.9 }}
+           onClick={() => {
+@@ -85,7 +85,7 @@ export function MobileChatOrb() {
+               animate={{ y: 0 }}
+               exit={{ y: "100%" }}
+               transition={{ type: "spring", stiffness: 300, damping: 30 }}
+-              className="absolute inset-x-0 bottom-0 z-50 max-h-[70vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
++              className="absolute inset-x-0 bottom-0 z-50 max-h-[75vh] rounded-t-3xl border-t bg-card shadow-float lg:hidden"
+               style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+             >
+               {/* Handle bar */}
+@@ -116,7 +116,7 @@ export function MobileChatOrb() {
+                 </button>
+               </div>
+               {/* Content */}
+-              <div className="h-[50vh] overflow-hidden">
++              <div className="h-[55vh] overflow-hidden">
+                 {tab === "chat" ? <ChatPanel /> : <div className="h-full overflow-y-auto scroll-soft p-2"><Scoreboard /></div>}
+               </div>
+             </motion.div>
+diff --git a/src/components/game/play/play-screen.tsx b/src/components/game/play/play-screen.tsx
+index f0547d2..67ae7ce 100644
+--- a/src/components/game/play/play-screen.tsx
++++ b/src/components/game/play/play-screen.tsx
+@@ -84,14 +84,14 @@ export function PlayScreen() {
+       )}
+ 
+       {/* Main 3-column on desktop; stacked + tabs on mobile */}
+-      <div className="flex min-h-0 flex-1 gap-1 p-1 sm:gap-3 sm:p-3">
++      <div className="flex min-h-0 flex-1 gap-0.5 p-0.5 sm:gap-3 sm:p-3">
+         {/* Left: scoreboard (desktop) */}
+         <aside className="hidden w-60 shrink-0 lg:block">
+           <Scoreboard />
+         </aside>
+ 
+         {/* Center: canvas + toolbar + reactions */}
+-        <main className="flex min-w-0 flex-1 flex-col gap-2">
++        <main className="flex min-w-0 flex-1 flex-col gap-1 sm:gap-2">
+           <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl"}>
+             <CanvasBoard className="h-full w-full" />
+             <ReactionsOverlay className="rounded-2xl" />

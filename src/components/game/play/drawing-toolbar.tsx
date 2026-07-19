@@ -212,6 +212,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
         className
       )}
       role="toolbar"
+      style={{ WebkitOverflowScrolling: "touch" }}
       aria-label="Drawing tools"
     >
       {/* Brushes */}

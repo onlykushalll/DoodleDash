@@ -664,8 +664,21 @@ function handleChat(io: Server, socket: Socket, content: string) {
   if (word && text.toLowerCase() === word.trim().toLowerCase()) {
     player.guessedThisRound = true
     const drawTime = Math.max(1, room.settings.drawTime)
-    const points = Math.round((room.timeLeft / drawTime) * 200) + 50
-    const drawerBonus = Math.round((room.timeLeft / drawTime) * 40) + 10
+    // Count how many non-drawer players have already guessed (position)
+    const alreadyGuessed = room.players.filter(
+      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator && p.guessedThisRound
+    ).length
+    const totalGuessers = Math.max(1, room.players.filter(
+      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator
+    ).length)
+    // Speed bonus: faster = more points (0-200 range)
+    const speedBonus = Math.round((room.timeLeft / drawTime) * 200)
+    // Position bonus: 1st guesser gets 100, 2nd gets 60, 3rd gets 30, rest get 10
+    const positionBonus = alreadyGuessed === 0 ? 100 : alreadyGuessed === 1 ? 60 : alreadyGuessed === 2 ? 30 : 10
+    // Base points for correct guess
+    const points = 50 + speedBonus + positionBonus
+    // Drawer gets bonus per correct guess (more if early guesses = good drawing)
+    const drawerBonus = Math.round((room.timeLeft / drawTime) * 30) + 15
     player.score += points
 
     const drawer = room.players.find((p) => p.id === room.currentDrawerId)

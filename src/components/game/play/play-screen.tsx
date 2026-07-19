@@ -84,14 +84,14 @@ export function PlayScreen() {
       )}
 
       {/* Main 3-column on desktop; stacked + tabs on mobile */}
-      <div className="flex min-h-0 flex-1 gap-1 p-1 sm:gap-3 sm:p-3">
+      <div className="flex min-h-0 flex-1 gap-0.5 p-0.5 sm:gap-3 sm:p-3">
         {/* Left: scoreboard (desktop) */}
         <aside className="hidden w-60 shrink-0 lg:block">
           <Scoreboard />
         </aside>
 
         {/* Center: canvas + toolbar + reactions */}
-        <main className="flex min-w-0 flex-1 flex-col gap-2">
+        <main className="flex min-w-0 flex-1 flex-col gap-1 sm:gap-2">
           <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-2xl"}>
             <CanvasBoard className="h-full w-full" />
             <ReactionsOverlay className="rounded-2xl" />
