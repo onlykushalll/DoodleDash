@@ -100,7 +100,7 @@ function ToolButton({
           disabled={disabled}
           onClick={onClick}
           className={cn(
-            "relative grid size-10 place-items-center rounded-xl border text-foreground transition-all",
+            "relative grid size-11 place-items-center rounded-xl border text-foreground transition-all",
             "hover:-translate-y-0.5 hover:shadow-soft active:translate-y-0",
             active
               ? "border-transparent bg-grad text-white shadow-soft"
@@ -208,7 +208,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass flex flex-wrap items-center gap-2 rounded-2xl border p-2 shadow-soft",
+        "glass flex items-center gap-2 overflow-x-auto scroll-soft rounded-2xl border p-2 shadow-soft sm:flex-wrap",
         className
       )}
       role="toolbar"
@@ -267,7 +267,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
 
       {/* Colors (CVD-aware palette) */}
       <div className="flex flex-col items-stretch gap-1.5">
-        <div className="grid grid-cols-11 gap-1">
+        <div className="grid grid-cols-6 gap-1 sm:grid-cols-11">
           {palette.map((c) => {
             const selected = brushColor.toLowerCase() === c.toLowerCase();
             return (
@@ -323,7 +323,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
                   aria-pressed={active}
                   onClick={() => handleSize(n)}
                   className={cn(
-                    "grid size-10 place-items-center rounded-xl border transition-all",
+                    "grid size-11 place-items-center rounded-xl border transition-all",
                     "hover:-translate-y-0.5 hover:shadow-soft",
                     active
                       ? "border-transparent bg-grad text-white shadow-soft"
@@ -361,7 +361,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
                   type="button"
                   aria-label="Clear canvas"
                   className={cn(
-                    "grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all",
+                    "grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all",
                     "hover:-translate-y-0.5 hover:bg-destructive hover:text-white hover:shadow-soft"
                   )}
                 >
@@ -424,7 +424,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
               <button
                 type="button"
                 aria-label="Paper texture"
-                className="grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
+                className="grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
               >
                 <PaletteIcon className="size-5" />
               </button>
@@ -460,7 +460,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
               <button
                 type="button"
                 aria-label="Accessibility settings"
-                className="grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
+                className="grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
               >
                 <Accessibility className="size-5" />
               </button>

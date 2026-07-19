@@ -97,7 +97,7 @@ export function PlayersGrid() {
           {players.length} / {MAX_PLAYERS}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <AnimatePresence mode="popLayout">
           {players.map((p) => (
             <PlayerCard key={p.id} player={p} isMe={p.id === meId} />

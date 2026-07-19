@@ -116,7 +116,7 @@ export function MobileChatOrb() {
                 </button>
               </div>
               {/* Content */}
-              <div className="h-[45vh] overflow-hidden">
+              <div className="h-[50vh] overflow-hidden">
                 {tab === "chat" ? <ChatPanel /> : <div className="h-full overflow-y-auto scroll-soft p-2"><Scoreboard /></div>}
               </div>
             </motion.div>

@@ -171,7 +171,7 @@ export function WordBar({ className }: { className?: string }) {
           ) : showHint ? (
             <div className="rounded-full border border-border bg-card px-4 py-1.5 shadow-soft">
               <span
-                className="font-mono text-lg font-bold tracking-[0.3em] text-foreground sm:text-xl"
+                className="font-mono text-base font-bold tracking-[0.2em] text-foreground sm:text-xl"
                 aria-label="Word hint"
               >
                 {hint || "—"}
@@ -179,7 +179,7 @@ export function WordBar({ className }: { className?: string }) {
             </div>
           ) : (
             <div className="rounded-full border border-border bg-card px-4 py-1.5 shadow-soft">
-              <span className="font-mono text-lg font-bold tracking-[0.3em] text-muted-foreground sm:text-xl">
+              <span className="font-mono text-base font-bold tracking-[0.2em] text-muted-foreground sm:text-xl">
                 …
               </span>
             </div>

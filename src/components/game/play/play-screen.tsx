@@ -38,7 +38,7 @@ export function PlayScreen() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {/* Top bar */}
-      <header className="glass z-30 flex shrink-0 items-center justify-between border-b px-3 py-2 sm:px-4">
+      <header className="glass z-30 flex shrink-0 items-center justify-between border-b px-2 py-1.5 sm:px-4 sm:py-2">
         <div className="flex min-w-0 items-center gap-2">
           <Logo compact />
           <div className="hidden min-w-0 flex-col sm:flex">
@@ -84,7 +84,7 @@ export function PlayScreen() {
       )}
 
       {/* Main 3-column on desktop; stacked + tabs on mobile */}
-      <div className="flex min-h-0 flex-1 gap-2 p-2 sm:gap-3 sm:p-3">
+      <div className="flex min-h-0 flex-1 gap-1 p-1 sm:gap-3 sm:p-3">
         {/* Left: scoreboard (desktop) */}
         <aside className="hidden w-60 shrink-0 lg:block">
           <Scoreboard />

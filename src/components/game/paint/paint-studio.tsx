@@ -493,7 +493,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
         </div>
 
         {/* Toolbar */}
-        <div className="glass flex flex-wrap items-center gap-2 rounded-2xl border p-2 shadow-soft">
+        <div className="glass flex items-center gap-2 overflow-x-auto scroll-soft rounded-2xl border p-2 shadow-soft sm:flex-wrap">
           {/* Brushes */}
           <div className="flex items-center gap-1">
             {(["pen", "marker", "pencil", "neon", "eraser"] as BrushType[]).map((b) => {
@@ -504,7 +504,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => { setBrush(b); setToolMode("brush"); sfx.pop(); }}
-                      className={cn("grid size-10 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+                      className={cn("grid size-11 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
                     >
                       <Icon className="size-5" />
                     </button>
@@ -526,7 +526,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => { setShape(st); setToolMode("shape"); sfx.pop(); }}
-                      className={cn("grid size-10 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+                      className={cn("grid size-11 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
                     >
                       <Icon className="size-5" />
                     </button>
@@ -542,7 +542,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
           {/* Fill */}
           <button
             onClick={() => { setToolMode("fill"); sfx.pop(); }}
-            className={cn("grid size-10 place-items-center rounded-xl border transition", toolMode === "fill" ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+            className={cn("grid size-11 place-items-center rounded-xl border transition", toolMode === "fill" ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
           >
             <PaintBucket className="size-5" />
           </button>
@@ -550,7 +550,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
 
           {/* Colors */}
-          <div className="grid grid-cols-11 gap-1">
+          <div className="grid grid-cols-6 gap-1 sm:grid-cols-11">
             {CANVAS_COLORS.map((c) => (
               <button
                 key={c}
@@ -570,7 +570,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
               <button
                 key={n}
                 onClick={() => { setBrushSize(n); sfx.click(); }}
-                className={cn("grid size-10 place-items-center rounded-xl border transition", brushSize === n ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+                className={cn("grid size-11 place-items-center rounded-xl border transition", brushSize === n ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
               >
                 <span className="rounded-full" style={{ width: Math.min(14, n * 0.6), height: Math.min(14, n * 0.6), background: brushSize === n ? "white" : "var(--foreground)" }} />
               </button>
@@ -581,10 +581,10 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
 
           {/* Symmetry */}
           <div className="flex items-center gap-1">
-            <button onClick={() => { setSymmetry(0); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border text-xs font-bold transition", symmetry === 0 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}>1×</button>
-            <button onClick={() => { setSymmetry(1); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 1 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipHorizontal className="size-5" /></button>
-            <button onClick={() => { setSymmetry(2); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 2 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipVertical className="size-5" /></button>
-            <button onClick={() => { setSymmetry(4); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 4 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><Grid2x2 className="size-5" /></button>
+            <button onClick={() => { setSymmetry(0); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border text-xs font-bold transition", symmetry === 0 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}>1×</button>
+            <button onClick={() => { setSymmetry(1); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 1 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipHorizontal className="size-5" /></button>
+            <button onClick={() => { setSymmetry(2); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 2 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipVertical className="size-5" /></button>
+            <button onClick={() => { setSymmetry(4); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 4 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><Grid2x2 className="size-5" /></button>
           </div>
 
           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
@@ -626,12 +626,12 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
 
           {/* Undo / Clear */}
-          <button onClick={handleUndo} className="grid size-10 place-items-center rounded-xl border border-border bg-card transition hover:bg-accent-soft">
+          <button onClick={handleUndo} className="grid size-11 place-items-center rounded-xl border border-border bg-card transition hover:bg-accent-soft">
             <Undo2 className="size-5" />
           </button>
           <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
             <AlertDialogTrigger asChild>
-              <button className="grid size-10 place-items-center rounded-xl border border-border bg-card transition hover:bg-destructive hover:text-white">
+              <button className="grid size-11 place-items-center rounded-xl border border-border bg-card transition hover:bg-destructive hover:text-white">
                 <Trash2 className="size-5" />
               </button>
             </AlertDialogTrigger>

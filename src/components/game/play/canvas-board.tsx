@@ -825,7 +825,7 @@ export function CanvasBoard({
         textureClass,
         className
       )}
-      style={{ aspectRatio: `${LOGICAL_W} / ${LOGICAL_H}`, background: wrapperBg }}
+      style={{ aspectRatio: `auto`, background: wrapperBg, height: '100%' }}
     >
       <canvas
         ref={canvasRef}

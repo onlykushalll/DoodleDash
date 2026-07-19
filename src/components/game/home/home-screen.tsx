@@ -69,7 +69,7 @@ export function HomeScreen({ onPaint }: HomeScreenProps) {
             <ThemeSwitcher compact />
             <button
               onClick={() => { sfx.click(); setCosmeticsOpen(true); }}
-              className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
+              className="grid size-11 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
               aria-label="Customize"
               title="Customize"
             >
@@ -77,7 +77,7 @@ export function HomeScreen({ onPaint }: HomeScreenProps) {
             </button>
             <button
               onClick={() => { sfx.click(); setProfileOpen(true); }}
-              className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
+              className="grid size-11 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
               aria-label="Profile"
               title="Profile"
             >

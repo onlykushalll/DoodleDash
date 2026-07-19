@@ -1,0 +1,273 @@
+diff --git a/src/components/game/home/avatar-picker.tsx b/src/components/game/home/avatar-picker.tsx
+index c8bd243..1736670 100644
+--- a/src/components/game/home/avatar-picker.tsx
++++ b/src/components/game/home/avatar-picker.tsx
+@@ -52,7 +52,7 @@ export function AvatarPicker({
+         aria-label="Choose your avatar"
+         className="max-h-40 overflow-y-auto scroll-soft rounded-2xl border bg-surface-2/60 p-2"
+       >
+-        <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
++        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+           {/* Draw your own button */}
+           <motion.button
+             type="button"
+diff --git a/src/components/game/home/home-screen.tsx b/src/components/game/home/home-screen.tsx
+index bf4ff65..d5bdcb7 100644
+--- a/src/components/game/home/home-screen.tsx
++++ b/src/components/game/home/home-screen.tsx
+@@ -69,7 +69,7 @@ export function HomeScreen({ onPaint }: HomeScreenProps) {
+             <ThemeSwitcher compact />
+             <button
+               onClick={() => { sfx.click(); setCosmeticsOpen(true); }}
+-              className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
++              className="grid size-11 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
+               aria-label="Customize"
+               title="Customize"
+             >
+@@ -77,7 +77,7 @@ export function HomeScreen({ onPaint }: HomeScreenProps) {
+             </button>
+             <button
+               onClick={() => { sfx.click(); setProfileOpen(true); }}
+-              className="grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
++              className="grid size-11 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition hover:bg-accent-soft"
+               aria-label="Profile"
+               title="Profile"
+             >
+diff --git a/src/components/game/lobby/players-grid.tsx b/src/components/game/lobby/players-grid.tsx
+index 42dc123..dd43e85 100644
+--- a/src/components/game/lobby/players-grid.tsx
++++ b/src/components/game/lobby/players-grid.tsx
+@@ -97,7 +97,7 @@ export function PlayersGrid() {
+           {players.length} / {MAX_PLAYERS}
+         </span>
+       </div>
+-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
++      <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
+         <AnimatePresence mode="popLayout">
+           {players.map((p) => (
+             <PlayerCard key={p.id} player={p} isMe={p.id === meId} />
+diff --git a/src/components/game/paint/paint-studio.tsx b/src/components/game/paint/paint-studio.tsx
+index 1d3fd8d..6f66013 100644
+--- a/src/components/game/paint/paint-studio.tsx
++++ b/src/components/game/paint/paint-studio.tsx
+@@ -493,7 +493,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+         </div>
+ 
+         {/* Toolbar */}
+-        <div className="glass flex flex-wrap items-center gap-2 rounded-2xl border p-2 shadow-soft">
++        <div className="glass flex items-center gap-2 overflow-x-auto scroll-soft rounded-2xl border p-2 shadow-soft sm:flex-wrap">
+           {/* Brushes */}
+           <div className="flex items-center gap-1">
+             {(["pen", "marker", "pencil", "neon", "eraser"] as BrushType[]).map((b) => {
+@@ -504,7 +504,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+                   <TooltipTrigger asChild>
+                     <button
+                       onClick={() => { setBrush(b); setToolMode("brush"); sfx.pop(); }}
+-                      className={cn("grid size-10 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
++                      className={cn("grid size-11 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+                     >
+                       <Icon className="size-5" />
+                     </button>
+@@ -526,7 +526,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+                   <TooltipTrigger asChild>
+                     <button
+                       onClick={() => { setShape(st); setToolMode("shape"); sfx.pop(); }}
+-                      className={cn("grid size-10 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
++                      className={cn("grid size-11 place-items-center rounded-xl border transition", active ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+                     >
+                       <Icon className="size-5" />
+                     </button>
+@@ -542,7 +542,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+           {/* Fill */}
+           <button
+             onClick={() => { setToolMode("fill"); sfx.pop(); }}
+-            className={cn("grid size-10 place-items-center rounded-xl border transition", toolMode === "fill" ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
++            className={cn("grid size-11 place-items-center rounded-xl border transition", toolMode === "fill" ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+           >
+             <PaintBucket className="size-5" />
+           </button>
+@@ -550,7 +550,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
+ 
+           {/* Colors */}
+-          <div className="grid grid-cols-11 gap-1">
++          <div className="grid grid-cols-6 gap-1 sm:grid-cols-11">
+             {CANVAS_COLORS.map((c) => (
+               <button
+                 key={c}
+@@ -570,7 +570,7 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+               <button
+                 key={n}
+                 onClick={() => { setBrushSize(n); sfx.click(); }}
+-                className={cn("grid size-10 place-items-center rounded-xl border transition", brushSize === n ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
++                className={cn("grid size-11 place-items-center rounded-xl border transition", brushSize === n ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}
+               >
+                 <span className="rounded-full" style={{ width: Math.min(14, n * 0.6), height: Math.min(14, n * 0.6), background: brushSize === n ? "white" : "var(--foreground)" }} />
+               </button>
+@@ -581,10 +581,10 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+ 
+           {/* Symmetry */}
+           <div className="flex items-center gap-1">
+-            <button onClick={() => { setSymmetry(0); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border text-xs font-bold transition", symmetry === 0 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}>1×</button>
+-            <button onClick={() => { setSymmetry(1); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 1 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipHorizontal className="size-5" /></button>
+-            <button onClick={() => { setSymmetry(2); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 2 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipVertical className="size-5" /></button>
+-            <button onClick={() => { setSymmetry(4); sfx.pop(); }} className={cn("grid size-10 place-items-center rounded-xl border transition", symmetry === 4 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><Grid2x2 className="size-5" /></button>
++            <button onClick={() => { setSymmetry(0); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border text-xs font-bold transition", symmetry === 0 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}>1×</button>
++            <button onClick={() => { setSymmetry(1); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 1 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipHorizontal className="size-5" /></button>
++            <button onClick={() => { setSymmetry(2); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 2 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><FlipVertical className="size-5" /></button>
++            <button onClick={() => { setSymmetry(4); sfx.pop(); }} className={cn("grid size-11 place-items-center rounded-xl border transition", symmetry === 4 ? "border-transparent bg-grad text-white" : "border-border bg-card hover:bg-accent-soft")}><Grid2x2 className="size-5" /></button>
+           </div>
+ 
+           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
+@@ -626,12 +626,12 @@ export function PaintStudio({ onExit }: { onExit: () => void }) {
+           <span className="mx-1 hidden h-8 w-px bg-border sm:block" />
+ 
+           {/* Undo / Clear */}
+-          <button onClick={handleUndo} className="grid size-10 place-items-center rounded-xl border border-border bg-card transition hover:bg-accent-soft">
++          <button onClick={handleUndo} className="grid size-11 place-items-center rounded-xl border border-border bg-card transition hover:bg-accent-soft">
+             <Undo2 className="size-5" />
+           </button>
+           <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+             <AlertDialogTrigger asChild>
+-              <button className="grid size-10 place-items-center rounded-xl border border-border bg-card transition hover:bg-destructive hover:text-white">
++              <button className="grid size-11 place-items-center rounded-xl border border-border bg-card transition hover:bg-destructive hover:text-white">
+                 <Trash2 className="size-5" />
+               </button>
+             </AlertDialogTrigger>
+diff --git a/src/components/game/play/canvas-board.tsx b/src/components/game/play/canvas-board.tsx
+index 3285d87..0aecade 100644
+--- a/src/components/game/play/canvas-board.tsx
++++ b/src/components/game/play/canvas-board.tsx
+@@ -825,7 +825,7 @@ export function CanvasBoard({
+         textureClass,
+         className
+       )}
+-      style={{ aspectRatio: `${LOGICAL_W} / ${LOGICAL_H}`, background: wrapperBg }}
++      style={{ aspectRatio: `auto`, background: wrapperBg, height: '100%' }}
+     >
+       <canvas
+         ref={canvasRef}
+diff --git a/src/components/game/play/drawing-toolbar.tsx b/src/components/game/play/drawing-toolbar.tsx
+index 0c0765a..022d36c 100644
+--- a/src/components/game/play/drawing-toolbar.tsx
++++ b/src/components/game/play/drawing-toolbar.tsx
+@@ -100,7 +100,7 @@ function ToolButton({
+           disabled={disabled}
+           onClick={onClick}
+           className={cn(
+-            "relative grid size-10 place-items-center rounded-xl border text-foreground transition-all",
++            "relative grid size-11 place-items-center rounded-xl border text-foreground transition-all",
+             "hover:-translate-y-0.5 hover:shadow-soft active:translate-y-0",
+             active
+               ? "border-transparent bg-grad text-white shadow-soft"
+@@ -208,7 +208,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+   return (
+     <div
+       className={cn(
+-        "glass flex flex-wrap items-center gap-2 rounded-2xl border p-2 shadow-soft",
++        "glass flex items-center gap-2 overflow-x-auto scroll-soft rounded-2xl border p-2 shadow-soft sm:flex-wrap",
+         className
+       )}
+       role="toolbar"
+@@ -267,7 +267,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+ 
+       {/* Colors (CVD-aware palette) */}
+       <div className="flex flex-col items-stretch gap-1.5">
+-        <div className="grid grid-cols-11 gap-1">
++        <div className="grid grid-cols-6 gap-1 sm:grid-cols-11">
+           {palette.map((c) => {
+             const selected = brushColor.toLowerCase() === c.toLowerCase();
+             return (
+@@ -323,7 +323,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+                   aria-pressed={active}
+                   onClick={() => handleSize(n)}
+                   className={cn(
+-                    "grid size-10 place-items-center rounded-xl border transition-all",
++                    "grid size-11 place-items-center rounded-xl border transition-all",
+                     "hover:-translate-y-0.5 hover:shadow-soft",
+                     active
+                       ? "border-transparent bg-grad text-white shadow-soft"
+@@ -361,7 +361,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+                   type="button"
+                   aria-label="Clear canvas"
+                   className={cn(
+-                    "grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all",
++                    "grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all",
+                     "hover:-translate-y-0.5 hover:bg-destructive hover:text-white hover:shadow-soft"
+                   )}
+                 >
+@@ -424,7 +424,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+               <button
+                 type="button"
+                 aria-label="Paper texture"
+-                className="grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
++                className="grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
+               >
+                 <PaletteIcon className="size-5" />
+               </button>
+@@ -460,7 +460,7 @@ export function DrawingToolbar({ className }: { className?: string }) {
+               <button
+                 type="button"
+                 aria-label="Accessibility settings"
+-                className="grid size-10 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
++                className="grid size-11 place-items-center rounded-xl border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:shadow-soft"
+               >
+                 <Accessibility className="size-5" />
+               </button>
+diff --git a/src/components/game/play/mobile-chat-orb.tsx b/src/components/game/play/mobile-chat-orb.tsx
+index a3b6608..7e2df3e 100644
+--- a/src/components/game/play/mobile-chat-orb.tsx
++++ b/src/components/game/play/mobile-chat-orb.tsx
+@@ -116,7 +116,7 @@ export function MobileChatOrb() {
+                 </button>
+               </div>
+               {/* Content */}
+-              <div className="h-[45vh] overflow-hidden">
++              <div className="h-[50vh] overflow-hidden">
+                 {tab === "chat" ? <ChatPanel /> : <div className="h-full overflow-y-auto scroll-soft p-2"><Scoreboard /></div>}
+               </div>
+             </motion.div>
+diff --git a/src/components/game/play/play-screen.tsx b/src/components/game/play/play-screen.tsx
+index 4da340b..f0547d2 100644
+--- a/src/components/game/play/play-screen.tsx
++++ b/src/components/game/play/play-screen.tsx
+@@ -38,7 +38,7 @@ export function PlayScreen() {
+   return (
+     <div className="flex h-dvh flex-col overflow-hidden">
+       {/* Top bar */}
+-      <header className="glass z-30 flex shrink-0 items-center justify-between border-b px-3 py-2 sm:px-4">
++      <header className="glass z-30 flex shrink-0 items-center justify-between border-b px-2 py-1.5 sm:px-4 sm:py-2">
+         <div className="flex min-w-0 items-center gap-2">
+           <Logo compact />
+           <div className="hidden min-w-0 flex-col sm:flex">
+@@ -84,7 +84,7 @@ export function PlayScreen() {
+       )}
+ 
+       {/* Main 3-column on desktop; stacked + tabs on mobile */}
+-      <div className="flex min-h-0 flex-1 gap-2 p-2 sm:gap-3 sm:p-3">
++      <div className="flex min-h-0 flex-1 gap-1 p-1 sm:gap-3 sm:p-3">
+         {/* Left: scoreboard (desktop) */}
+         <aside className="hidden w-60 shrink-0 lg:block">
+           <Scoreboard />
+diff --git a/src/components/game/play/word-bar.tsx b/src/components/game/play/word-bar.tsx
+index 459607b..03ab5fd 100644
+--- a/src/components/game/play/word-bar.tsx
++++ b/src/components/game/play/word-bar.tsx
+@@ -171,7 +171,7 @@ export function WordBar({ className }: { className?: string }) {
+           ) : showHint ? (
+             <div className="rounded-full border border-border bg-card px-4 py-1.5 shadow-soft">
+               <span
+-                className="font-mono text-lg font-bold tracking-[0.3em] text-foreground sm:text-xl"
++                className="font-mono text-base font-bold tracking-[0.2em] text-foreground sm:text-xl"
+                 aria-label="Word hint"
+               >
+                 {hint || "—"}
+@@ -179,7 +179,7 @@ export function WordBar({ className }: { className?: string }) {
+             </div>
+           ) : (
+             <div className="rounded-full border border-border bg-card px-4 py-1.5 shadow-soft">
+-              <span className="font-mono text-lg font-bold tracking-[0.3em] text-muted-foreground sm:text-xl">
++              <span className="font-mono text-base font-bold tracking-[0.2em] text-muted-foreground sm:text-xl">
+                 …
+               </span>
+             </div>
