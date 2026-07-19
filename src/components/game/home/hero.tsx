@@ -125,15 +125,15 @@ export function Hero({ onCreate, onJoin }: HeroProps) {
           >
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-accent" />
-              No signup
+              No signup needed
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-accent" />
-              4 themes
+              Up to 12 players
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-accent" />
-              Paint Studio
+              Works on any device
             </span>
           </motion.div>
         </div>

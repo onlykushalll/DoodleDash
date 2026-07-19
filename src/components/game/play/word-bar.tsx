@@ -164,7 +164,7 @@ export function WordBar({ className }: { className?: string }) {
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 320, damping: 16 }}
-              className="flex items-center gap-1.5 rounded-full bg-grad px-4 py-1.5 font-extrabold text-white shadow-soft"
+              className="flex items-center gap-1.5 rounded-full bg-grad px-4 py-1.5 font-extrabold text-white shadow-float"
             >
               <span className="uppercase tracking-wider">{word || "—"}</span>
             </motion.div>

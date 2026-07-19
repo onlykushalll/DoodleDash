@@ -108,6 +108,14 @@ export function LoadingScreen() {
           >
             Draw. Guess. Laugh.
           </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.5 }}
+            transition={{ delay: 2.0, duration: 0.4 }}
+            className="mt-2 text-[10px] text-muted-foreground/60"
+          >
+            Loading your canvas…
+          </motion.p>
         </motion.div>
 
         {/* Loading bar */}

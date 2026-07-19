@@ -25,8 +25,8 @@ export function PaintStudioCard({ onPaint }: { onPaint?: () => void }) {
         <div className="flex-1">
           <h2 className="text-xl font-extrabold sm:text-2xl">Paint Studio</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Unwind with a free-form canvas. All brushes, colors, shapes, and symmetry tools.
-            No timers, no pressure — just you and your creativity. Save your masterpiece as PNG.
+            A free-form canvas with all brushes, 33 colors, shapes, fill, and symmetry.
+            No timers, no pressure — just you and your creativity. Export your art as PNG.
           </p>
         </div>
         <Button

@@ -51,7 +51,7 @@ export function HowToPlay({ className }: HowToPlayProps) {
             transition={{ duration: 0.4, delay: i * 0.08 }}
             className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2/50 p-3"
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-card text-xl shadow-soft">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-grad text-xl shadow-soft text-white">
               {s.icon}
             </span>
             <div className="min-w-0">

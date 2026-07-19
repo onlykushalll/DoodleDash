@@ -61,7 +61,7 @@ export function AvatarPicker({
             onClick={() => { setDrawOpen(true); sfx.pop(); }}
             className="relative grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-accent text-accent transition hover:bg-accent-soft"
             aria-label="Draw your own avatar"
-            title="Draw your own"
+            title="Draw your own avatar"
           >
             <Pencil className="size-4" />
           </motion.button>

@@ -1,0 +1,96 @@
+diff --git a/src/components/game/home/avatar-picker.tsx b/src/components/game/home/avatar-picker.tsx
+index 1736670..dfb832e 100644
+--- a/src/components/game/home/avatar-picker.tsx
++++ b/src/components/game/home/avatar-picker.tsx
+@@ -61,7 +61,7 @@ export function AvatarPicker({
+             onClick={() => { setDrawOpen(true); sfx.pop(); }}
+             className="relative grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-accent text-accent transition hover:bg-accent-soft"
+             aria-label="Draw your own avatar"
+-            title="Draw your own"
++            title="Draw your own avatar"
+           >
+             <Pencil className="size-4" />
+           </motion.button>
+diff --git a/src/components/game/home/hero.tsx b/src/components/game/home/hero.tsx
+index f082665..0713a23 100644
+--- a/src/components/game/home/hero.tsx
++++ b/src/components/game/home/hero.tsx
+@@ -125,15 +125,15 @@ export function Hero({ onCreate, onJoin }: HeroProps) {
+           >
+             <span className="inline-flex items-center gap-1.5">
+               <span className="h-2 w-2 rounded-full bg-accent" />
+-              No signup
++              No signup needed
+             </span>
+             <span className="inline-flex items-center gap-1.5">
+               <span className="h-2 w-2 rounded-full bg-accent" />
+-              4 themes
++              Up to 12 players
+             </span>
+             <span className="inline-flex items-center gap-1.5">
+               <span className="h-2 w-2 rounded-full bg-accent" />
+-              Paint Studio
++              Works on any device
+             </span>
+           </motion.div>
+         </div>
+diff --git a/src/components/game/home/how-to-play.tsx b/src/components/game/home/how-to-play.tsx
+index c6e6742..5f206cc 100644
+--- a/src/components/game/home/how-to-play.tsx
++++ b/src/components/game/home/how-to-play.tsx
+@@ -51,7 +51,7 @@ export function HowToPlay({ className }: HowToPlayProps) {
+             transition={{ duration: 0.4, delay: i * 0.08 }}
+             className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2/50 p-3"
+           >
+-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-card text-xl shadow-soft">
++            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-grad text-xl shadow-soft text-white">
+               {s.icon}
+             </span>
+             <div className="min-w-0">
+diff --git a/src/components/game/home/paint-studio-card.tsx b/src/components/game/home/paint-studio-card.tsx
+index c66ea49..4318609 100644
+--- a/src/components/game/home/paint-studio-card.tsx
++++ b/src/components/game/home/paint-studio-card.tsx
+@@ -25,8 +25,8 @@ export function PaintStudioCard({ onPaint }: { onPaint?: () => void }) {
+         <div className="flex-1">
+           <h2 className="text-xl font-extrabold sm:text-2xl">Paint Studio</h2>
+           <p className="mt-1 text-sm text-muted-foreground">
+-            Unwind with a free-form canvas. All brushes, colors, shapes, and symmetry tools.
+-            No timers, no pressure — just you and your creativity. Save your masterpiece as PNG.
++            A free-form canvas with all brushes, 33 colors, shapes, fill, and symmetry.
++            No timers, no pressure — just you and your creativity. Export your art as PNG.
+           </p>
+         </div>
+         <Button
+diff --git a/src/components/game/loading-screen.tsx b/src/components/game/loading-screen.tsx
+index c8be658..733ea75 100644
+--- a/src/components/game/loading-screen.tsx
++++ b/src/components/game/loading-screen.tsx
+@@ -108,6 +108,14 @@ export function LoadingScreen() {
+           >
+             Draw. Guess. Laugh.
+           </motion.p>
++          <motion.p
++            initial={{ opacity: 0 }}
++            animate={{ opacity: 0.5 }}
++            transition={{ delay: 2.0, duration: 0.4 }}
++            className="mt-2 text-[10px] text-muted-foreground/60"
++          >
++            Loading your canvas…
++          </motion.p>
+         </motion.div>
+ 
+         {/* Loading bar */}
+diff --git a/src/components/game/play/word-bar.tsx b/src/components/game/play/word-bar.tsx
+index 03ab5fd..f3c36b8 100644
+--- a/src/components/game/play/word-bar.tsx
++++ b/src/components/game/play/word-bar.tsx
+@@ -164,7 +164,7 @@ export function WordBar({ className }: { className?: string }) {
+               initial={{ scale: 0.85, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               transition={{ type: "spring", stiffness: 320, damping: 16 }}
+-              className="flex items-center gap-1.5 rounded-full bg-grad px-4 py-1.5 font-extrabold text-white shadow-soft"
++              className="flex items-center gap-1.5 rounded-full bg-grad px-4 py-1.5 font-extrabold text-white shadow-float"
+             >
+               <span className="uppercase tracking-wider">{word || "—"}</span>
+             </motion.div>
