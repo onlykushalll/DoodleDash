@@ -674,21 +674,10 @@ function handleChat(io: Server, socket: Socket, content: string) {
   if (word && text.toLowerCase() === word.trim().toLowerCase()) {
     player.guessedThisRound = true
     const drawTime = Math.max(1, room.settings.drawTime)
-    // Count how many non-drawer players have already guessed (position)
-    const alreadyGuessed = room.players.filter(
-      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator && p.guessedThisRound
-    ).length
-    const totalGuessers = Math.max(1, room.players.filter(
-      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator
-    ).length)
-    // Speed bonus: faster = more points (0-200 range)
-    const speedBonus = Math.round((room.timeLeft / drawTime) * 200)
-    // Position bonus: 1st guesser gets 100, 2nd gets 60, 3rd gets 30, rest get 10
-    const positionBonus = alreadyGuessed === 0 ? 100 : alreadyGuessed === 1 ? 60 : alreadyGuessed === 2 ? 30 : 10
-    // Base points for correct guess
-    const points = 50 + speedBonus + positionBonus
-    // Drawer gets bonus per correct guess (more if early guesses = good drawing)
-    const drawerBonus = Math.round((room.timeLeft / drawTime) * 30) + 15
+    // Time-based scoring only: faster guess = more points (range 50-300)
+    const points = 50 + Math.round((room.timeLeft / drawTime) * 250)
+    // Drawer bonus per correct guess (range 10-50)
+    const drawerBonus = 10 + Math.round((room.timeLeft / drawTime) * 40)
     player.score += points
 
     const drawer = room.players.find((p) => p.id === room.currentDrawerId)
@@ -716,9 +705,9 @@ function handleChat(io: Server, socket: Socket, content: string) {
     broadcastChat(io, room, correctMsg)
     emitRoomState(io, room)
 
-    // Check if all non-drawer players have guessed
+    // Check if all non-drawer, non-spectator players have guessed
     const remaining = room.players.filter(
-      (p) => p.id !== room.currentDrawerId && p.connected && !p.guessedThisRound
+      (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator && !p.guessedThisRound
     )
     if (remaining.length === 0) {
       endRound(io, room)

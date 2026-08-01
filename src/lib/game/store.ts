@@ -55,7 +55,6 @@ interface GameState {
   canvasBorder: string;
   customAvatar: string | null;
   profileStats: { games: number; wins: number; bestScore: number; favoriteWord: string | null };
-  buddies: { code: string; name: string; avatar: string }[];
   queenArrival: { name: string; avatar: string; ts: number } | null;
 
   // actions (delegated to socket hook via setSocket ready)
@@ -87,8 +86,6 @@ interface GameState {
   setNameColor: (c: string | null) => void;
   setCanvasBorder: (b: string) => void;
   setCustomAvatar: (d: string | null) => void;
-  addBuddy: (b: { code: string; name: string; avatar: string }) => void;
-  removeBuddy: (code: string) => void;
   setQueenArrival: (q: { name: string; avatar: string; ts: number } | null) => void;
   reset: () => void;
 }
@@ -143,7 +140,6 @@ export const useGameStore = create<GameState>((set) => ({
   canvasBorder: "none",
   customAvatar: null,
   profileStats: { games: 0, wins: 0, bestScore: 0, favoriteWord: null },
-  buddies: [],
   queenArrival: null,
 
   setConnected: (v) => set({ connected: v }),
@@ -184,8 +180,6 @@ export const useGameStore = create<GameState>((set) => ({
   setNameColor: (c) => set({ nameColor: c }),
   setCanvasBorder: (b) => set({ canvasBorder: b }),
   setCustomAvatar: (d) => set({ customAvatar: d }),
-  addBuddy: (b) => set((s) => ({ buddies: [...s.buddies, b] })),
-  removeBuddy: (code) => set((s) => ({ buddies: s.buddies.filter((b) => b.code !== code) })),
   setQueenArrival: (q) => set({ queenArrival: q }),
   reset: () =>
     set({

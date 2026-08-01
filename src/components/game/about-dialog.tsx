@@ -105,7 +105,7 @@ export function AboutDialog({
               <div className="rounded-xl border border-border p-3">
                 <p className="mb-2 text-xs font-semibold">Your Data</p>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  All your data (theme, preferences, profile, buddies) is stored locally in your browser.
+                  All your data (theme, preferences, profile) is stored locally in your browser.
                   No data is sent to any server.
                 </p>
                 <button
