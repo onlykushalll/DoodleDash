@@ -88,7 +88,7 @@ const roomWords = new Map<string, string>() // roomCode -> current word (mirror 
 
 const MAX_PLAYERS = 12
 const CHOOSE_TIME_MS = 25_000
-const ROUND_END_DELAY_MS = 6_000
+const ROUND_END_DELAY_MS = 3_000
 
 // Special names that get a queen's welcome (case-insensitive).
 const ROYAL_NAMES = ['sia', 'siya', 'maahi']
@@ -220,8 +220,9 @@ function maybePause(io: Server, room: ServerRoom) {
   if (room.paused) return // already paused
   if (!hasSufficientPlayers(room)) {
     room.paused = true
-    // Clear the draw-end timeout (will re-schedule on resume)
+    // Clear timers that shouldn't fire while paused
     if (room.drawEndTimeout) { clearTimeout(room.drawEndTimeout); room.drawEndTimeout = null }
+    if (room.chooseTimeout) { clearTimeout(room.chooseTimeout); room.chooseTimeout = null }
     console.log(`[game] room ${room.code} PAUSED — insufficient players`)
     // Notify spectators that a player is needed
     const spectators = room.players.filter((p) => p.isSpectator && p.connected)
@@ -618,6 +619,11 @@ function handleChat(io: Server, socket: Socket, content: string) {
 
   // Drawer & spectators can't score; treat as plain chat
   if (room.currentDrawerId === player.id || player.isSpectator) {
+    const word = room.currentWord ?? ''
+    if (word && room.stage === 'drawing' && text.toLowerCase().includes(word.trim().toLowerCase())) {
+      socket.emit('chat:message', { message: { id: rid(), playerId: 'system', name: 'System', content: 'You can\'t reveal the word in chat!', type: 'system', timestamp: ts } })
+      return
+    }
     const msg: ChatMessage = {
       id: rid(),
       playerId: player.id,
@@ -646,8 +652,12 @@ function handleChat(io: Server, socket: Socket, content: string) {
 
   const word = room.currentWord ?? ''
 
-  // Already guessed this round → just chat
+  // Already guessed this round → just chat (but filter word leaks)
   if (player.guessedThisRound) {
+    if (word && text.toLowerCase().includes(word.trim().toLowerCase())) {
+      socket.emit('chat:message', { message: { id: rid(), playerId: 'system', name: 'System', content: 'Don\'t spoil the word!', type: 'system', timestamp: ts } })
+      return
+    }
     const msg: ChatMessage = {
       id: rid(),
       playerId: player.id,
@@ -951,10 +961,14 @@ io.on('connection', (socket) => {
         socket.emit('room:error', { message: 'Only the host can change settings' })
         return
       }
+      if (room.stage !== 'lobby') {
+        socket.emit('room:error', { message: 'Cannot change settings while game is in progress' })
+        return
+      }
       const s = payload?.settings || {}
       const merged: GameSettings = { ...room.settings }
       if (typeof s.rounds === 'number') {
-        merged.rounds = Math.max(1, Math.min(10, Math.floor(s.rounds)))
+        merged.rounds = Math.max(1, Math.min(20, Math.floor(s.rounds)))
       }
       if (typeof s.drawTime === 'number') {
         merged.drawTime = Math.max(30, Math.min(180, Math.floor(s.drawTime)))
@@ -1085,6 +1099,8 @@ io.on('connection', (socket) => {
       room.gallery = []
       room.canvas = { strokes: [], shapes: [] }
       room.currentWord = null
+      room.paused = false
+      room.usedWords.clear()
       roomWords.set(room.code, '')
       room.wordHint = ''
       console.log(`[game] room ${room.code} START. rounds=${room.totalRounds} drawOrder=${room.drawOrder.join(',')}`)
@@ -1108,6 +1124,8 @@ io.on('connection', (socket) => {
       }
       const targetId = payload?.playerId
       if (!targetId || targetId === socket.id) return
+      const targetInRoom = room.players.find((p) => p.id === targetId)
+      if (!targetInRoom) return
       const targetSocket = io.sockets.sockets.get(targetId) as Socket | undefined
       if (targetSocket) {
         removePlayerFromRoom(io, targetSocket, targetId, true) // kick = immediate

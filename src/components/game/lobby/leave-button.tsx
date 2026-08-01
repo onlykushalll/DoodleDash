@@ -5,6 +5,7 @@ import { LogOut, XCircle } from "lucide-react";
 import { useGameStore, selectIsHost } from "@/lib/game/store";
 import { getSocket } from "@/hooks/use-game-socket";
 import { sfx } from "@/lib/game/sound";
+import { clearSession } from "@/lib/game/session";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
@@ -20,6 +21,7 @@ export function LeaveButton() {
 
   const leave = () => {
     sfx.close();
+    clearSession();
     try { getSocket().emit("room:leave"); } catch {}
     reset();
     setView("home");
@@ -50,6 +52,7 @@ export function LeaveButton() {
             <AlertDialogAction
               onClick={() => {
                 sfx.close();
+                clearSession();
                 try { getSocket().emit("room:leave"); } catch {}
                 reset();
                 setView("home");

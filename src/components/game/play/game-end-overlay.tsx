@@ -14,6 +14,7 @@ import { sfx } from "@/lib/game/sound";
 import type { Player } from "@/lib/game/types";
 import { GalleryDialog } from "./gallery-dialog";
 import { updateProfileAfterGame } from "@/lib/game/profile";
+import { clearSession } from "@/lib/game/session";
 
 // Stable selector for my player id
 const selectMeId = (s: ReturnType<typeof useGameStore.getState>) => s.meId;
@@ -299,6 +300,7 @@ export function GameEndOverlay() {
 
   function handleLeave() {
     sfx.click();
+    clearSession();
     getSocket().emit("room:leave");
     reset();
     setView("home");

@@ -5,6 +5,7 @@ import { io, type Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@/lib/game/types";
 import { useGameStore } from "@/lib/game/store";
 import { sfx, primeAudio } from "@/lib/game/sound";
+import { restoreSession, saveSession, updateSessionScore, clearSession } from "@/lib/game/session";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -63,6 +64,7 @@ export function useGameSocket() {
     const onConnect = () => {
       store.getState().setConnected(true);
       store.getState().setConnecting(false);
+      attemptAutoRejoin(socket);
     };
     const onDisconnect = () => {
       store.getState().setConnected(false);
@@ -197,6 +199,11 @@ export function useGameSocket() {
       }
       store.getState().setFinalScores(finalScores);
       sfx.gameEnd();
+      // Persist final score to session
+      const meId = store.getState().meId;
+      if (meId && finalScores[meId] != null) {
+        updateSessionScore(finalScores[meId]);
+      }
     };
     const onReactionShow = ({ reaction }: any) => {
       store.getState().addReaction(reaction.emoji, reaction.x);
@@ -298,4 +305,49 @@ export function useGameSocket() {
       // NOTE: do NOT disconnect the singleton — we reuse it across views.
     };
   }, [store]);
+}
+
+let rejoinAttempted = false;
+
+async function attemptAutoRejoin(socket: GameSocket) {
+  if (rejoinAttempted) return;
+  const state = useGameStore.getState();
+  if (state.room) return; // already in a room
+
+  rejoinAttempted = true;
+
+  const session = await restoreSession();
+  if (!session) return;
+
+  console.log(`[session] Found session for room ${session.roomCode} as ${session.name} — attempting rejoin`);
+  useGameStore.getState().setIdentity({
+    name: session.name,
+    avatar: session.avatar,
+    color: session.color,
+  });
+
+  socket.emit(
+    "room:join",
+    {
+      roomCode: session.roomCode,
+      name: session.name,
+      avatar: session.avatar,
+      color: session.color,
+      customAvatar: session.customAvatar,
+    },
+    (res) => {
+      if (res.ok && res.playerId) {
+        useGameStore.getState().setMeId(res.playerId);
+        useGameStore.getState().setView("lobby");
+        console.log(`[session] Rejoined room ${session.roomCode} as ${session.name}`);
+      } else {
+        console.log(`[session] Rejoin failed: ${res.error}`);
+        clearSession();
+      }
+    }
+  );
+}
+
+export function resetRejoinFlag() {
+  rejoinAttempted = false;
 }

@@ -15,6 +15,7 @@ import { useGameStore } from "@/lib/game/store";
 import { getSocket } from "@/hooks/use-game-socket";
 import { sfx } from "@/lib/game/sound";
 import { cn } from "@/lib/utils";
+import { saveSession } from "@/lib/game/session";
 
 export interface CreateJoinCardProps {
   mode: "create" | "join";
@@ -94,6 +95,13 @@ export function CreateJoinCard({
         if (res.ok && res.playerId) {
           useGameStore.getState().setMeId(res.playerId);
           useGameStore.getState().setView("lobby");
+          saveSession({
+            roomCode: res.roomCode!,
+            name: trimmedName,
+            avatar,
+            color,
+            customAvatar,
+          });
         } else {
           toast.error(res.error || "Could not create room.");
         }
@@ -131,6 +139,14 @@ export function CreateJoinCard({
         if (res.ok && res.playerId) {
           useGameStore.getState().setMeId(res.playerId);
           useGameStore.getState().setView("lobby");
+          saveSession({
+            roomCode: roomCode.trim().toUpperCase(),
+            name: trimmedName,
+            avatar,
+            color,
+            customAvatar,
+            isSpectator: spectator,
+          });
         } else {
           toast.error(res.error || "Could not join room.");
         }

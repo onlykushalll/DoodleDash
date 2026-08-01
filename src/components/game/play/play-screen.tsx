@@ -16,24 +16,108 @@ import { getSocket } from "@/hooks/use-game-socket";
 import { sfx } from "@/lib/game/sound";
 import { Logo } from "@/components/game/logo";
 import { MobileChatOrb } from "./mobile-chat-orb";
+import { RotateOverlay } from "./rotate-overlay";
+import { VerticalToolbar } from "./vertical-toolbar";
+import { SidePanel } from "./side-panel";
+import { useOrientation } from "@/hooks/use-orientation";
 
-export function PlayScreen() {
-  const room = useGameStore((s) => s.room);
-  const isDrawer = useGameStore(selectIsDrawer);
-  const me = useGameStore(selectMe);
+function useBorderClass() {
   const canvasBorder = useGameStore((s) => s.canvasBorder);
-  const isSpectator = !!me?.isSpectator;
-
-  if (!room) return null;
-
-  // Canvas border style mapping
-  const borderClass =
-    canvasBorder === "solid" ? "border-2 border-foreground"
+  return canvasBorder === "solid" ? "border-2 border-foreground"
     : canvasBorder === "dashed" ? "border-2 border-dashed border-foreground"
     : canvasBorder === "double" ? "border-4 border-double border-foreground"
     : canvasBorder === "glow" ? "border-2 border-primary shadow-[0_0_20px_var(--accent)]"
     : canvasBorder === "gradient" ? "border-4 border-transparent [border-image:linear-gradient(135deg,var(--grad-from),var(--grad-to))_1]"
     : "border";
+}
+
+function MobileLandscapeLayout() {
+  const room = useGameStore((s) => s.room);
+  const isDrawer = useGameStore(selectIsDrawer);
+  const me = useGameStore(selectMe);
+  const isSpectator = !!me?.isSpectator;
+  const borderClass = useBorderClass();
+
+  if (!room) return null;
+
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* Compact top bar */}
+      <header className="glass z-30 flex shrink-0 items-center justify-between border-b px-2 py-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Logo compact />
+          <span className="text-[10px] font-mono font-semibold text-muted-foreground">{room.code}</span>
+          {room.paused && <span className="text-[10px] font-bold text-amber-600">⏸</span>}
+          {isSpectator && (
+            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold text-amber-700">👁</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <ThemeSwitcher compact />
+          <LeaveButton />
+        </div>
+      </header>
+
+      {/* 3-column body */}
+      <div className="flex min-h-0 flex-1 gap-1 p-1">
+        {/* Left: Canvas (flex-1, gets ~60-65%) */}
+        <main className="relative flex min-w-0 flex-1 flex-col">
+          {/* Word bar overlaid as glass pill */}
+          <div className="absolute inset-x-2 top-1 z-20">
+            <WordBar className="!rounded-full !py-1 !px-2 !shadow-float backdrop-blur-lg bg-card/80 !border-border/40 text-xs [&_*]:!text-xs [&_.font-mono]:!text-[10px]" />
+          </div>
+          <div className={borderClass + " relative min-h-0 flex-1 overflow-hidden rounded-xl"}>
+            <CanvasBoard className="h-full w-full" />
+            <ReactionsOverlay className="rounded-xl" />
+            <ReactionBar className="absolute bottom-2 right-2 z-10" />
+          </div>
+        </main>
+
+        {/* Middle column (~80px): role-dependent */}
+        <div className="w-[80px] shrink-0">
+          {isDrawer && !isSpectator ? (
+            <VerticalToolbar className="h-full" />
+          ) : (
+            <div className="h-full overflow-y-auto scroll-soft rounded-2xl border bg-card/95 shadow-soft">
+              <Scoreboard />
+            </div>
+          )}
+        </div>
+
+        {/* Right column: chat panel with toggle for drawer */}
+        <div className="w-[200px] shrink-0">
+          <SidePanel className="h-full" />
+        </div>
+      </div>
+
+      {/* Spectator volunteer prompt */}
+      {isSpectator && room.paused && (
+        <div className="absolute bottom-2 left-1/2 z-30 -translate-x-1/2 rounded-xl border border-accent bg-accent-soft px-3 py-2 text-center shadow-float">
+          <button
+            onClick={() => { getSocket().emit("spectator:volunteer"); sfx.click(); }}
+            className="rounded-lg bg-grad px-3 py-1 text-xs font-bold text-white"
+          >
+            Join as player
+          </button>
+        </div>
+      )}
+
+      <WordChoiceOverlay />
+      <RoundEndOverlay />
+      <GameEndOverlay />
+      <RotateOverlay />
+    </div>
+  );
+}
+
+function DesktopLayout() {
+  const room = useGameStore((s) => s.room);
+  const isDrawer = useGameStore(selectIsDrawer);
+  const me = useGameStore(selectMe);
+  const isSpectator = !!me?.isSpectator;
+  const borderClass = useBorderClass();
+
+  if (!room) return null;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -114,12 +198,22 @@ export function PlayScreen() {
         <MobileChatOrb />
       </div>
 
-      {/* Overlays (self-mount based on room.stage) */}
+      {/* Overlays */}
       <WordChoiceOverlay />
       <RoundEndOverlay />
       <GameEndOverlay />
+      <RotateOverlay />
     </div>
   );
+}
+
+export function PlayScreen() {
+  const room = useGameStore((s) => s.room);
+  const { isMobileLandscape } = useOrientation();
+
+  if (!room) return null;
+
+  return isMobileLandscape ? <MobileLandscapeLayout /> : <DesktopLayout />;
 }
 
 export default PlayScreen;
