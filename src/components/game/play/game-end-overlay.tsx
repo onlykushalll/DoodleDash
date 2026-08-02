@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Home, LogOut, Palette, RefreshCw, Trophy, Users } from "lucide-react";
+import { Home, LogOut, Palette, RefreshCw, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,6 @@ import { sfx } from "@/lib/game/sound";
 import type { Player } from "@/lib/game/types";
 import { GalleryDialog } from "./gallery-dialog";
 import { updateProfileAfterGame } from "@/lib/game/profile";
-import { clearSession } from "@/lib/game/session";
 
 // Stable selector for my player id
 const selectMeId = (s: ReturnType<typeof useGameStore.getState>) => s.meId;
@@ -236,51 +235,7 @@ export function GameEndOverlay() {
         );
       } catch { /* ignore */ }
     }
-
-    if (isHost) {
-      const top = [...room.players].sort((a, b) => b.score - a.score)[0];
-      const payload = {
-        players: room.players.map((p) => ({
-          name: p.name,
-          avatar: p.avatar,
-          color: p.color,
-          score: p.score,
-          won: top ? p.id === top.id : false,
-        })),
-      };
-      const body = JSON.stringify(payload);
-      const secret = process.env.NEXT_PUBLIC_SCORE_SECRET || "doodle-dash-secret-2024";
-
-      const submitScores = async () => {
-        try {
-          const enc = new TextEncoder();
-          const key = await window.crypto.subtle.importKey(
-            "raw",
-            enc.encode(secret),
-            { name: "HMAC", hash: { name: "SHA-256" } },
-            false,
-            ["sign"]
-          );
-          const signature = await window.crypto.subtle.sign("HMAC", key, enc.encode(body));
-          const token = Array.from(new Uint8Array(signature))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join("");
-
-          await fetch("/api/scores", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-            },
-            body,
-          });
-        } catch (e) {
-          console.error("[scores] failed to submit stats:", e);
-        }
-      };
-      submitScores();
-    }
-  }, [show, room, meId, isHost]);
+  }, [show, room, meId]);
 
   const top3 = sortedPlayers.slice(0, 3);
   const rest = sortedPlayers.slice(3);
@@ -288,19 +243,15 @@ export function GameEndOverlay() {
 
   function handlePlayAgain() {
     sfx.click();
-    // Host can request a restart; server may no-op gracefully if unsupported.
-    getSocket().emit("room:start");
-  }
-
-  function handleBackToLobby() {
-    sfx.click();
-    // Just go back to lobby view - don't leave the room
-    useGameStore.getState().setView("lobby");
+    // Go back to the lobby instead of instantly restarting. This lets
+    // players decide if they want to play again, change settings, invite
+    // friends, etc. The host can start a new game from the lobby when
+    // everyone is ready.
+    getSocket().emit("room:back-to-lobby");
   }
 
   function handleLeave() {
     sfx.click();
-    clearSession();
     getSocket().emit("room:leave");
     reset();
     setView("home");
@@ -422,21 +373,13 @@ export function GameEndOverlay() {
                   <Palette className="h-4 w-4" />
                   View Gallery
                 </Button>
-                <Button
-                  onClick={handleBackToLobby}
-                  variant="outline"
-                  className="rounded-xl"
-                >
-                  <Users className="h-4 w-4" />
-                  Back to Lobby
-                </Button>
                 {isHost && (
                   <Button
                     onClick={handlePlayAgain}
                     className="rounded-xl"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Play Again
+                    Back to Lobby
                   </Button>
                 )}
                 <Button

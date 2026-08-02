@@ -85,10 +85,15 @@ interface PlayerLookup {
 const rooms = new Map<string, ServerRoom>()
 const players = new Map<string, PlayerLookup>() // socketId -> lookup
 const roomWords = new Map<string, string>() // roomCode -> current word (mirror of ServerRoom.currentWord, kept separate per task spec)
+// Per-room "recently seen" scores for players who fully disconnected after
+// the grace window expired. Lets us restore their score if they rejoin later
+// (e.g. after a long page-refresh / tab-close). TTL = 5 minutes.
+const recentScores = new Map<string, Map<string, { score: number; ts: number; avatar: string; color: string }>>()
+const RECENT_SCORE_TTL_MS = 5 * 60 * 1000
 
 const MAX_PLAYERS = 12
 const CHOOSE_TIME_MS = 25_000
-const ROUND_END_DELAY_MS = 3_000
+const ROUND_END_DELAY_MS = 3_000 // brief word reveal, then instant advance
 
 // Special names that get a queen's welcome (case-insensitive).
 const ROYAL_NAMES = ['sia', 'siya', 'maahi']
@@ -187,8 +192,10 @@ function deleteRoom(io: Server, code: string) {
   clearTimers(room)
   // Make all sockets leave the room (defensive)
   io.in(code).socketsLeave(code)
+  // Drop streak entries for all players in this room.
   rooms.delete(code)
   roomWords.delete(code)
+  clearRecentScores(code)
   // Clean players map for any leftover sockets pointing here
   for (const [sid, lookup] of players) {
     if (lookup.roomId === code) players.delete(sid)
@@ -220,9 +227,12 @@ function maybePause(io: Server, room: ServerRoom) {
   if (room.paused) return // already paused
   if (!hasSufficientPlayers(room)) {
     room.paused = true
-    // Clear timers that shouldn't fire while paused
+    // Clear ALL active timers (draw-end, choose, draw-interval) — they'll be
+    // re-scheduled on resume. Without this, chooseTimeout can fire while
+    // paused, auto-picking a word and starting a broken round.
     if (room.drawEndTimeout) { clearTimeout(room.drawEndTimeout); room.drawEndTimeout = null }
     if (room.chooseTimeout) { clearTimeout(room.chooseTimeout); room.chooseTimeout = null }
+    if (room.drawInterval) { clearInterval(room.drawInterval); room.drawInterval = null }
     console.log(`[game] room ${room.code} PAUSED — insufficient players`)
     // Notify spectators that a player is needed
     const spectators = room.players.filter((p) => p.isSpectator && p.connected)
@@ -494,8 +504,33 @@ function makePlayer(socketId: string, name: string, avatar: string, color: strin
 
 // Grace period (ms) before a disconnected player is fully removed from a room.
 // Allows page-refresh / brief network drop to reconnect without losing the seat.
-const RECONNECT_GRACE_MS = 60_000  // 60 seconds — mobile needs more time to reconnect
+// 60s covers slow reloads + brief connectivity blips.
+const RECONNECT_GRACE_MS = 60_000
 const reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+// ---- Recent-scores helpers (for rejoin after grace expires) ----
+function rememberScore(roomCode: string, name: string, score: number, avatar: string, color: string) {
+  if (!name) return
+  let m = recentScores.get(roomCode)
+  if (!m) { m = new Map(); recentScores.set(roomCode, m) }
+  m.set(name.toLowerCase(), { score, ts: Date.now(), avatar, color })
+  // Lazy TTL sweep: drop entries older than TTL whenever we write.
+  const cutoff = Date.now() - RECENT_SCORE_TTL_MS
+  for (const [k, v] of m) if (v.ts < cutoff) m.delete(k)
+}
+
+function recallScore(roomCode: string, name: string): { score: number; avatar: string; color: string } | null {
+  const m = recentScores.get(roomCode)
+  if (!m) return null
+  const entry = m.get(name.toLowerCase())
+  if (!entry) return null
+  if (Date.now() - entry.ts > RECENT_SCORE_TTL_MS) { m.delete(name.toLowerCase()); return null }
+  return { score: entry.score, avatar: entry.avatar, color: entry.color }
+}
+
+function clearRecentScores(roomCode: string) {
+  recentScores.delete(roomCode)
+}
 
 function removePlayerFromRoom(io: Server, socket: Socket, playerId: string, immediate = false) {
   const lookup = players.get(playerId)
@@ -579,6 +614,9 @@ function removePlayerFromRoom(io: Server, socket: Socket, playerId: string, imme
     try {
       const stillInRoom = room.players.find((p) => p.id === playerId)
       if (!stillInRoom || stillInRoom.connected) return
+      // Before removing, remember the player's score so a later rejoin
+      // (after grace expired) can restore it.
+      rememberScore(room.code, player.name, player.score, player.avatar, player.color)
       room.players = room.players.filter((p) => p.id !== playerId)
       room.drawOrder = room.drawOrder.filter((id) => id !== playerId)
       if (wasHost && room.players.length > 0) {
@@ -616,14 +654,23 @@ function handleChat(io: Server, socket: Socket, content: string) {
   if (!text) return
 
   const ts = now()
+  const word = room.currentWord ?? ''
+  const wordLower = word.trim().toLowerCase()
 
-  // Drawer & spectators can't score; treat as plain chat
+  // ── Anti-cheat: prevent word leak via chat ──
+  // The drawer and already-guessed players KNOW the word. If they type it
+  // (or a very close match) in chat, drop the message silently so it's
+  // never revealed to non-guessers.
+  const textLower = text.toLowerCase()
+  const isWordLeak = wordLower && wordLower.length > 2 && (
+    textLower === wordLower ||
+    textLower.includes(wordLower) ||
+    wordLower.includes(textLower) && textLower.length >= wordLower.length * 0.6
+  )
+
+  // Drawer & spectators can't score; treat as plain chat (but filter word leaks)
   if (room.currentDrawerId === player.id || player.isSpectator) {
-    const word = room.currentWord ?? ''
-    if (word && room.stage === 'drawing' && text.toLowerCase().includes(word.trim().toLowerCase())) {
-      socket.emit('chat:message', { message: { id: rid(), playerId: 'system', name: 'System', content: 'You can\'t reveal the word in chat!', type: 'system', timestamp: ts } })
-      return
-    }
+    if (isWordLeak) return // silently drop — don't reveal the word
     const msg: ChatMessage = {
       id: rid(),
       playerId: player.id,
@@ -650,14 +697,9 @@ function handleChat(io: Server, socket: Socket, content: string) {
     return
   }
 
-  const word = room.currentWord ?? ''
-
   // Already guessed this round → just chat (but filter word leaks)
   if (player.guessedThisRound) {
-    if (word && text.toLowerCase().includes(word.trim().toLowerCase())) {
-      socket.emit('chat:message', { message: { id: rid(), playerId: 'system', name: 'System', content: 'Don\'t spoil the word!', type: 'system', timestamp: ts } })
-      return
-    }
+    if (isWordLeak) return // silently drop — don't reveal the word
     const msg: ChatMessage = {
       id: rid(),
       playerId: player.id,
@@ -674,17 +716,25 @@ function handleChat(io: Server, socket: Socket, content: string) {
   if (word && text.toLowerCase() === word.trim().toLowerCase()) {
     player.guessedThisRound = true
     const drawTime = Math.max(1, room.settings.drawTime)
-    // Time-based scoring only: faster guess = more points (range 50-300)
-    const points = 50 + Math.round((room.timeLeft / drawTime) * 250)
-    // Drawer bonus per correct guess (range 10-50)
-    const drawerBonus = 10 + Math.round((room.timeLeft / drawTime) * 40)
+    const timeRatio = room.timeLeft / drawTime // 0..1 (1 = just started)
+
+    // ---- Time-based scoring ONLY ----
+    // Guesser: points inversely proportional to time taken.
+    //   Faster guess → more timeLeft → more points.
+    //   Range: 50 (last second) .. 300 (instant).
+    const points = Math.round(50 + timeRatio * 250)
     player.score += points
+
+    // Drawer: also time-based. Gets points per guesser based on how fast
+    //   they guessed (timeLeft at moment of guess).
+    //   Range: 10 (last second) .. 50 (instant) per guesser.
+    const drawerBonus = Math.round(10 + timeRatio * 40)
 
     const drawer = room.players.find((p) => p.id === room.currentDrawerId)
     if (drawer) drawer.score += drawerBonus
 
     console.log(
-      `[chat] room ${room.code} ${player.name} guessed correctly (+${points}, drawer +${drawerBonus})`
+      `[chat] room ${room.code} ${player.name} guessed (+${points}, drawer +${drawerBonus})`
     )
 
     io.to(room.code).emit('game:player-guessed', {
@@ -705,7 +755,7 @@ function handleChat(io: Server, socket: Socket, content: string) {
     broadcastChat(io, room, correctMsg)
     emitRoomState(io, room)
 
-    // Check if all non-drawer, non-spectator players have guessed
+    // Check if all non-drawer players have guessed → end round immediately.
     const remaining = room.players.filter(
       (p) => p.id !== room.currentDrawerId && p.connected && !p.isSpectator && !p.guessedThisRound
     )
@@ -760,10 +810,7 @@ function handleChat(io: Server, socket: Socket, content: string) {
 const httpServer = createServer()
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   path: '/socket.io',
-  cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: '*', methods: ['GET', 'POST'] },
   pingTimeout: 60000,
   pingInterval: 25000,
 })
@@ -892,14 +939,30 @@ io.on('connection', (socket) => {
         cb({ ok: false, error: 'Room is full' })
         return
       }
-      if (!spectator && room.stage !== 'lobby') {
+      // Mid-game join is normally blocked — BUT if this name was recently in
+      // the room (score remembered), treat it as a reconnect: restore the
+      // score and allow the join as a player. This makes page-refreshes /
+      // tab-closes fully recoverable even after the grace window expires.
+      const recalled = !spectator && room.stage !== 'lobby'
+        ? recallScore(code, trimmedName)
+        : null
+      if (!spectator && room.stage !== 'lobby' && !recalled) {
         cb({ ok: false, error: 'Game already started — rejoin with the same name to reconnect, or join as spectator.' })
         return
       }
       // Spectators can always join (even mid-game)
 
       const player = makePlayer(socket.id, name, avatar, color, false, spectator, customAvatar ?? null)
+      // Restore score if we remembered one for this name.
+      if (recalled) {
+        player.score = recalled.score
+        console.log(`[room] ${code} ${player.name} rejoined after grace; restored score=${player.score}`)
+      }
       room.players.push(player)
+      // If mid-game and rejoining as a player, add to drawOrder for subsequent rounds.
+      if (recalled && room.stage !== 'lobby' && !room.drawOrder.includes(player.id)) {
+        room.drawOrder.push(player.id)
+      }
       players.set(socket.id, { socketId: socket.id, roomId: code, player })
       socket.join(code)
 
@@ -923,6 +986,10 @@ io.on('connection', (socket) => {
           shapes: room.canvas.shapes.map((s) => ({ ...s })),
         })
       }
+
+      // If the game was paused (insufficient players) and a player rejoined,
+      // try to resume.
+      if (recalled && room.paused) maybeResume(io, room)
     } catch (e) {
       console.error('[room:join] error', e)
       cb({ ok: false, error: 'Failed to join room' })
@@ -950,8 +1017,9 @@ io.on('connection', (socket) => {
         socket.emit('room:error', { message: 'Only the host can change settings' })
         return
       }
-      if (room.stage !== 'lobby') {
-        socket.emit('room:error', { message: 'Cannot change settings while game is in progress' })
+      // Prevent settings changes mid-game (corrupts scoring ratio, round count, etc.)
+      if (room.stage !== 'lobby' && room.stage !== 'game-end') {
+        socket.emit('room:error', { message: 'Settings can only be changed in the lobby' })
         return
       }
       const s = payload?.settings || {}
@@ -1055,6 +1123,48 @@ io.on('connection', (socket) => {
     }
   })
 
+  // ----- room:back-to-lobby ------------------------------------------------
+  // After game-end, host can send everyone back to the lobby (instead of
+  // instantly restarting). This lets players decide if they want to play
+  // again, invite more friends, change settings, etc. The host can then
+  // start a new game from the lobby when everyone's ready.
+  socket.on('room:back-to-lobby', () => {
+    try {
+      const lookup = players.get(socket.id)
+      if (!lookup) return
+      const room = rooms.get(lookup.roomId)
+      if (!room) return
+      if (room.hostId !== socket.id) {
+        socket.emit('room:error', { message: 'Only the host can return to lobby' })
+        return
+      }
+      if (room.stage !== 'game-end') return
+      clearTimers(room)
+      room.stage = 'lobby'
+      room.currentDrawerId = null
+      room.currentWord = null
+      roomWords.set(room.code, '')
+      room.wordHint = ''
+      room.timeLeft = 0
+      room.paused = false
+      room.currentRound = 0
+      room.currentDrawIndex = 0
+      room.drawOrder = []
+      // Keep scores visible in lobby until a new game starts, but reset on start.
+      // Reset guessedThisRound for cleanliness.
+      for (const p of room.players) p.guessedThisRound = false
+      broadcastChat(io, room, {
+        id: rid(), playerId: 'system', name: 'System',
+        content: '🏠 Back to the lobby! Host can start a new game when everyone is ready.',
+        type: 'system', timestamp: now(),
+      })
+      emitRoomState(io, room)
+      console.log(`[room] ${room.code} back to lobby after game-end`)
+    } catch (e) {
+      console.error('[room:back-to-lobby] error', e)
+    }
+  })
+
   // ----- room:start -------------------------------------------------------
   socket.on('room:start', () => {
     try {
@@ -1080,6 +1190,7 @@ io.on('connection', (socket) => {
       room.currentRound = 1
       room.currentDrawIndex = 0
       room.drawOrder = shuffle(connected.map((p) => p.id))
+      room.paused = false // reset paused state for fresh game
       // Reset scores, gallery, canvas for a fresh game
       for (const p of room.players) {
         p.score = 0
@@ -1088,10 +1199,9 @@ io.on('connection', (socket) => {
       room.gallery = []
       room.canvas = { strokes: [], shapes: [] }
       room.currentWord = null
-      room.paused = false
-      room.usedWords.clear()
       roomWords.set(room.code, '')
       room.wordHint = ''
+      room.usedWords.clear() // reset used words for fresh game
       console.log(`[game] room ${room.code} START. rounds=${room.totalRounds} drawOrder=${room.drawOrder.join(',')}`)
       startRound(io, room)
     } catch (e) {
@@ -1113,14 +1223,22 @@ io.on('connection', (socket) => {
       }
       const targetId = payload?.playerId
       if (!targetId || targetId === socket.id) return
+      // ── Security: verify the target is actually in THIS room ──
       const targetInRoom = room.players.find((p) => p.id === targetId)
-      if (!targetInRoom) return
+      if (!targetInRoom) {
+        socket.emit('room:error', { message: 'Player not in this room' })
+        return
+      }
       const targetSocket = io.sockets.sockets.get(targetId) as Socket | undefined
       if (targetSocket) {
         removePlayerFromRoom(io, targetSocket, targetId, true) // kick = immediate
         targetSocket.emit('room:error', { message: 'You were removed from the room' })
       } else {
-        removePlayerFromRoom(io, socket, targetId, true) // kick = immediate
+        // Socket disconnected — just remove from room data
+        room.players = room.players.filter((p) => p.id !== targetId)
+        room.drawOrder = room.drawOrder.filter((id) => id !== targetId)
+        io.to(room.code).emit('room:player-left', { playerId: targetId })
+        emitRoomState(io, room)
       }
     } catch (e) {
       console.error('[room:kick] error', e)
@@ -1149,7 +1267,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(lookup.roomId)
     if (!room) return null
     if (room.stage !== 'drawing') return null
-    if (room.paused) return null
     if (room.currentDrawerId !== socket.id) return null
     return room
   }
@@ -1271,42 +1388,6 @@ io.on('connection', (socket) => {
       handleChat(io, socket, payload?.content ?? '')
     } catch (e) {
       console.error('[chat:send] error', e)
-    }
-  })
-
-  // ----- chat:typing ------------------------------------------------------
-  socket.on('chat:typing', () => {
-    try {
-      const lookup = players.get(socket.id)
-      if (!lookup) return
-      const room = rooms.get(lookup.roomId)
-      if (!room) return
-      const player = room.players.find((p) => p.id === socket.id)
-      if (!player) return
-      // Broadcast to others (not self), throttled by client
-      socket.to(room.code).emit('chat:typing', { playerId: socket.id, name: player.name })
-    } catch (e) {
-      console.error('[chat:typing] error', e)
-    }
-  })
-
-  // ----- chat:react -------------------------------------------------------
-  socket.on('chat:react', (payload) => {
-    try {
-      const lookup = players.get(socket.id)
-      if (!lookup) return
-      const room = rooms.get(lookup.roomId)
-      if (!room) return
-      const player = room.players.find((p) => p.id === socket.id)
-      if (!player) return
-      const messageId = payload?.messageId
-      const emoji = (payload?.emoji || '').slice(0, 4) // limit emoji length
-      if (!messageId || !emoji) return
-      io.to(room.code).emit('chat:reaction', {
-        messageId, emoji, playerId: socket.id, name: player.name,
-      })
-    } catch (e) {
-      console.error('[chat:react] error', e)
     }
   })
 
