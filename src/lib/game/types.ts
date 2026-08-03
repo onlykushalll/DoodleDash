@@ -167,6 +167,7 @@ export interface ClientToServerEvents {
   "game:clear": () => void;
   "chat:send": (payload: { content: string }) => void;
   "chat:typing": () => void;
+  "chat:react": (payload: { messageId: string; emoji: string }) => void;
   "reaction:send": (payload: { emoji: ReactionEmoji; x: number }) => void;
 }
 
