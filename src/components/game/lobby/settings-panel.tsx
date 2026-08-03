@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
-const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const ROUND_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20];
 const DRAW_TIME_OPTIONS = [30, 60, 80, 120, 150];
 const DIFFICULTY_OPTIONS: { value: WordDifficulty; label: string; emoji: string }[] = [
   { value: "easy", label: "Easy", emoji: "🌱" },
