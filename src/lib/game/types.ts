@@ -298,7 +298,12 @@ export function isCloseGuess(guess: string, word: string): boolean {
   if (g === w) return false;
   if (g.length < 2 || w.length < 2) return false;
   const d = levenshtein(g, w);
-  return d <= 2 && d > 0;
+  // Scale threshold by word length to prevent false positives on short words:
+  // 3-char words: d === 1 only (very tight — "cat" vs "bat" is close, "cat" vs "dog" is not)
+  // 4-5 char words: d <= 2
+  // 6+ char words: d <= 3
+  const threshold = w.length <= 3 ? 1 : w.length <= 5 ? 2 : 3;
+  return d <= threshold && d > 0;
 }
 
 function levenshtein(a: string, b: string): number {

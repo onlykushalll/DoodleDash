@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessagesSquare, Send, Sparkles } from "lucide-react";
+import { ArrowDown, MessagesSquare, Send, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,43 +12,15 @@ import { useGameStore, selectMe, selectIsDrawer } from "@/lib/game/store";
 import { getSocket } from "@/hooks/use-game-socket";
 import { sfx } from "@/lib/game/sound";
 import type { ChatMessage, GameStage } from "@/lib/game/types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const GUESS_DISABLE_STAGES: GameStage[] = ["choosing"];
-
-const EMOJI_CATEGORIES = {
-  Smileys: ["😀","😂","🥰","😎","🤔","😭","😡","😴","🤪","😇","🥳","🤓","😬","🙄","😏","😱"],
-  Gestures: ["👍","👎","👏","🙌","🙏","💪","🤙","✌️","🤞","🤟","👌","👆","👇","🫶"],
-  Hearts: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","❣️","💕","💖","💘","💝"],
-  Fun: ["🔥","✨","🎉","🎊","🎨","🖌️","✏️","🌈","⭐","💀","🫠","🤡","👻","🤖"],
-};
-
-function highlightMentions(text: string, myName?: string) {
-  if (!myName) return text;
-  const parts = text.split(new RegExp(`(${myName})`, "gi"));
-  return parts.map((part, i) =>
-    part.toLowerCase() === myName.toLowerCase() ? (
-      <span key={i} className="rounded bg-white/30 px-0.5 font-bold text-foreground">{part}</span>
-    ) : (
-      part
-    )
-  );
-}
+const GUESS_DISABLE_STAGES: GameStage[] = []; // Never disable chat — server allows it in all stages
 
 function ChatBubble({
   message,
   isMe,
-  playerColor,
-  reactions,
-  onReact,
-  myName,
 }: {
   message: ChatMessage;
   isMe: boolean;
-  playerColor?: string;
-  reactions?: { emoji: string; name: string }[];
-  onReact?: (emoji: string) => void;
-  myName?: string;
 }) {
   const { type, name, content, timestamp } = message;
 
@@ -78,16 +50,24 @@ function ChatBubble({
     );
   }
 
-  // close: subtle amber bubble
+  // close: subtle amber bubble — shows the actual guess
   if (type === "close") {
     return (
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="my-1"
+        className={cn("my-1 flex flex-col", isMe ? "items-end" : "items-start")}
       >
-        <div className="rounded-2xl border border-amber-200/70 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-          <span className="font-semibold">{name}</span> is close…
+        <div className="max-w-[85%] rounded-2xl border border-amber-200/70 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 break-words">
+          {!isMe && (
+            <div className="mb-0.5 text-[11px] font-bold text-amber-600/80">
+              {name}
+            </div>
+          )}
+          <div className="leading-snug">{content}</div>
+          <div className="mt-0.5 text-[10px] font-semibold text-amber-500">
+            🔥 close!
+          </div>
         </div>
       </motion.div>
     );
@@ -99,53 +79,22 @@ function ChatBubble({
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("my-1 relative flex flex-col", mine ? "items-end" : "items-start")}
+      className={cn("my-1 flex w-full flex-col", mine ? "items-end" : "items-start")}
     >
       <div
         className={cn(
-          "group inline-block max-w-[75%] w-fit rounded-2xl px-3 py-1.5 text-sm shadow-soft break-words",
+          "max-w-[85%] rounded-2xl px-3 py-1.5 text-sm shadow-soft break-words",
           mine
-            ? "rounded-br-md text-white"
+            ? "rounded-br-md bg-grad text-primary-foreground"
             : "rounded-bl-md bg-card text-card-foreground border border-border/60"
         )}
-        style={mine && playerColor ? { backgroundColor: playerColor } : undefined}
       >
         {!mine && (
           <div className="mb-0.5 text-[11px] font-bold text-primary/80">
             {name}
           </div>
         )}
-        <div className="whitespace-pre-wrap break-words leading-snug">
-          {highlightMentions(content, myName)}
-        </div>
-        {/* Reactions - inline, no layout shift */}
-        {reactions && reactions.length > 0 && (
-          <div className="mt-0.5 flex flex-wrap gap-0.5">
-            {Object.entries(
-              reactions.reduce((acc, r) => {
-                acc[r.emoji] = (acc[r.emoji] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>)
-            ).map(([emoji, count]) => (
-              <span key={emoji} className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium", mine ? "bg-white/25" : "bg-muted")} title={reactions.filter(r => r.emoji === emoji).map(r => r.name).join(", ")}>
-                {emoji}{count > 1 ? ` ${count}` : ""}
-              </span>
-            ))}
-          </div>
-        )}
-        {/* Quick react buttons - absolute positioned to avoid layout shift */}
-        <div className="absolute -top-3 right-1 flex gap-0.5 rounded-full bg-card p-0.5 shadow-soft opacity-0 transition group-hover:opacity-100 z-10">
-          {["👍", "😂", "🔥"].map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => onReact?.(emoji)}
-              className={cn("rounded-full px-1.5 py-0.5 text-xs hover:bg-accent-soft", mine ? "text-foreground" : "text-foreground")}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
+        <div className="leading-snug">{content}</div>
       </div>
       <span className="mt-0.5 px-1 text-[9px] text-muted-foreground/70 tabular-nums">
         {new Date(timestamp).toLocaleTimeString([], {
@@ -165,103 +114,54 @@ export function ChatPanel() {
   const [input, setInput] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
-
-  const [typingUsers, setTypingUsers] = React.useState<string[]>([]);
-  const typingTimeoutRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-
-  const [reactions, setReactions] = React.useState<Record<string, { emoji: string; name: string }[]>>({});
-  const [chatSounds, setChatSounds] = React.useState(false);
-  const [emojiCat, setEmojiCat] = React.useState<keyof typeof EMOJI_CATEGORIES>("Smileys");
+  const [atBottom, setAtBottom] = React.useState(true);
 
   const chat = room?.chat ?? [];
   const stage = room?.stage ?? "lobby";
   const guessedThisRound = !!me?.guessedThisRound;
 
-  // Listen for socket events
-  React.useEffect(() => {
-    const socket = getSocket();
-
-    const onTyping = ({ playerId, name }: { playerId: string; name: string }) => {
-      if (playerId === me?.id) return;
-      setTypingUsers((prev) => prev.includes(name) ? prev : [...prev, name]);
-      const existing = typingTimeoutRef.current.get(playerId);
-      if (existing) clearTimeout(existing);
-      typingTimeoutRef.current.set(playerId, setTimeout(() => {
-        setTypingUsers((prev) => prev.filter((n) => n !== name));
-      }, 3000));
-    };
-
-    const onReaction = ({ messageId, emoji, name }: any) => {
-      setReactions((prev) => {
-        const existing = prev[messageId] || [];
-        const filtered = existing.filter((r) => !(r.emoji === emoji && r.name === name));
-        if (filtered.length === existing.length) {
-          return { ...prev, [messageId]: [...existing, { emoji, name }] };
-        }
-        return { ...prev, [messageId]: filtered };
-      });
-    };
-
-    socket.on("chat:typing", onTyping);
-    socket.on("chat:reaction", onReaction);
-
-    return () => {
-      socket.off("chat:typing", onTyping);
-      socket.off("chat:reaction", onReaction);
-    };
-  }, [me?.id]);
-
-  // Emit typing on input change (throttled)
-  const lastTypingRef = React.useRef(0);
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-    const now = Date.now();
-    if (now - lastTypingRef.current > 2000) {
-      lastTypingRef.current = now;
-      getSocket().emit("chat:typing");
-    }
-  };
-
-  // Play sound on new message (only if enabled and not my own message)
-  const prevChatLen = React.useRef(0);
-  React.useEffect(() => {
-    if (chatSounds && chat.length > prevChatLen.current) {
-      const lastMsg = chat[chat.length - 1];
-      if (lastMsg && lastMsg.playerId !== me?.id) {
-        sfx.chatPop();
-      }
-    }
-    prevChatLen.current = chat.length;
-  }, [chat, chatSounds, me?.id]);
-
-  const insertEmoji = (emoji: string) => {
-    setInput((prev) => prev + emoji);
-    inputRef.current?.focus();
-  };
-
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages — but only if the user is already
+  // at the bottom (don't yank them away while reading older messages).
   React.useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.length, stage]);
+    if (el && atBottom) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [chat.length, stage, atBottom]);
+
+  // Track scroll position to know whether to show the "jump to bottom" button.
+  const handleScroll = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setAtBottom(distFromBottom < 40);
+  }, []);
+
+  const jumpToBottom = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      setAtBottom(true);
+    }
+  }, []);
 
   const disableInput = GUESS_DISABLE_STAGES.includes(stage);
   const isGuessInput = !isDrawer && !guessedThisRound;
 
   const placeholder = React.useMemo(() => {
-    if (disableInput) return "Waiting for the round to start…";
+    if (isDrawer && stage === "choosing") return "Pick a word above…";
     if (isDrawer) return "You're drawing — chat to talk, no guessing!";
     if (guessedThisRound) return "You guessed! Keep chatting…";
     return "Type your guess…";
-  }, [disableInput, isDrawer, guessedThisRound]);
+  }, [stage, isDrawer, guessedThisRound]);
 
   const hint = React.useMemo(() => {
-    if (disableInput) return null;
+    if (isDrawer && stage === "choosing") return null;
     if (isDrawer)
       return "🎨 You're drawing — your messages are sent as chat, not guesses.";
     if (guessedThisRound) return "✅ You guessed correctly — chat freely!";
     return null;
-  }, [disableInput, isDrawer, guessedThisRound]);
+  }, [stage, isDrawer, guessedThisRound]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -278,31 +178,21 @@ export function ChatPanel() {
   const messageCount = chat.length;
 
   return (
-    <Card className="shadow-soft flex h-full flex-col gap-0 overflow-hidden rounded-none border-0">
-      <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+    <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden rounded-2xl p-0 shadow-soft">
+      <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <MessagesSquare className="h-4 w-4 text-primary" />
           <h2 className="font-extrabold tracking-tight">Chat &amp; Guesses</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="tabular-nums">
-            {messageCount}
-          </Badge>
-          <button
-            type="button"
-            onClick={() => setChatSounds((v) => !v)}
-            className="rounded-lg p-1 transition hover:bg-accent-soft text-sm"
-            aria-label="Toggle chat sounds"
-            title={chatSounds ? "Chat sounds on" : "Chat sounds off"}
-          >
-            {chatSounds ? "🔔" : "🔕"}
-          </button>
-        </div>
+        <Badge variant="secondary" className="tabular-nums">
+          {messageCount}
+        </Badge>
       </header>
 
       <div
         ref={scrollRef}
-        className="scroll-soft flex-1 overflow-y-auto px-3 py-2"
+        onScroll={handleScroll}
+        className="scroll-soft min-h-0 flex-1 overflow-y-auto px-3 py-2"
       >
         <AnimatePresence initial={false}>
           {chat.length === 0 && (
@@ -311,41 +201,44 @@ export function ChatPanel() {
               No messages yet. Say hi 👋
             </div>
           )}
-          {chat.map((m) => {
-            const player = room?.players.find((p) => p.id === m.playerId);
-            return (
-              <ChatBubble
-                key={m.id}
-                message={m}
-                isMe={m.playerId === me?.id}
-                playerColor={player?.color}
-                reactions={reactions[m.id]}
-                onReact={(emoji) => getSocket().emit("chat:react", { messageId: m.id, emoji })}
-                myName={me?.name}
-              />
-            );
-          })}
+          {chat.map((m) => (
+            <ChatBubble key={m.id} message={m} isMe={m.playerId === me?.id} />
+          ))}
         </AnimatePresence>
       </div>
 
-      <div className="shrink-0 border-t border-border/60 p-2 sm:p-3">
-        {typingUsers.length > 0 && (
-          <div className="px-3 pb-1 text-[11px] italic text-muted-foreground animate-pulse">
-            {typingUsers.length === 1
-              ? `${typingUsers[0]} is typing…`
-              : `${typingUsers.slice(0, 2).join(" and ")} are typing…`}
-          </div>
+      {/* Jump-to-bottom button (appears when scrolled up) */}
+      <AnimatePresence>
+        {!atBottom && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            className="relative"
+          >
+            <button
+              type="button"
+              onClick={jumpToBottom}
+              className="absolute -top-10 right-3 z-10 grid h-8 w-8 place-items-center rounded-full border border-border bg-card text-foreground shadow-float transition hover:scale-110"
+              aria-label="Jump to latest messages"
+            >
+              <ArrowDown className="h-4 w-4" />
+            </button>
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      <div className="shrink-0 border-t border-border/60 p-2.5 sm:p-3">
         {hint && (
           <div className="mb-2 rounded-lg bg-accent-soft/70 px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground">
             {hint}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <Input
             ref={inputRef}
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             placeholder={placeholder}
             disabled={disableInput}
             maxLength={120}
@@ -355,61 +248,16 @@ export function ChatPanel() {
             spellCheck={false}
             enterKeyHint="send"
             aria-label={isGuessInput ? "Guess input" : "Chat input"}
-            className="h-12 rounded-xl text-base border-2 focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-11 rounded-xl text-base sm:h-10 sm:text-sm"
           />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                disabled={disableInput}
-                className="h-12 w-12 rounded-xl shrink-0 text-lg"
-                aria-label="Choose emoji"
-              >
-                😀
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-3 shadow-lg rounded-2xl border border-border">
-              <div className="space-y-2">
-                <div className="flex gap-1 overflow-x-auto pb-1 border-b border-border/50">
-                  {Object.keys(EMOJI_CATEGORIES).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setEmojiCat(cat as keyof typeof EMOJI_CATEGORIES)}
-                      className={cn(
-                        "rounded-md px-2 py-0.5 text-[10px] font-bold transition shrink-0",
-                        emojiCat === cat ? "bg-grad text-white" : "text-muted-foreground hover:bg-accent-soft"
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1 max-h-36 overflow-y-auto pr-1">
-                  {EMOJI_CATEGORIES[emojiCat].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => { insertEmoji(emoji); sfx.pop(); }}
-                      className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent-soft text-base"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
           <Button
             type="submit"
             size="icon"
             disabled={disableInput || input.trim().length === 0}
             aria-label="Send"
-            className="h-12 w-12 rounded-xl shrink-0 bg-grad"
+            className="h-11 w-11 shrink-0 rounded-xl sm:h-10 sm:w-10"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-4 w-4" />
           </Button>
         </form>
       </div>

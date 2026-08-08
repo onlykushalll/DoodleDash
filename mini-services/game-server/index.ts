@@ -686,8 +686,12 @@ function handleChat(io: Server, socket: Socket, content: string) {
   const isWordLeak = wordLower && wordLower.length > 2 && (() => {
     // Exact match — always block
     if (textLower === wordLower) return true
-    // For longer words (5+ chars): check if text contains the word as a substring
-    if (wordLower.length >= 5 && textLower.includes(wordLower)) return true
+    // For ALL words (3+ chars): check if text contains the word as a whole word
+    // Use word boundaries to prevent false positives (e.g. "pineapple" won't trigger for "apple")
+    try {
+      const wordBoundaryRegex = new RegExp(`\\b${wordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+      if (wordBoundaryRegex.test(textLower)) return true
+    } catch { /* regex error — skip */ }
     // For words 5+ chars: check close match (Levenshtein ≤ 2)
     // Don't apply to short words (3-4 chars) — too many false positives
     if (wordLower.length >= 5) {
@@ -1417,7 +1421,7 @@ io.on('connection', (socket) => {
     try {
       const nowMs = Date.now()
       const last = chatRateLimit.get(socket.id) ?? 0
-      if (nowMs - last < 500) return // drop spam
+      if (nowMs - last < 150) return // drop spam (150ms = ~6 msgs/sec max)
       chatRateLimit.set(socket.id, nowMs)
       handleChat(io, socket, payload?.content ?? '')
     } catch (e) {
