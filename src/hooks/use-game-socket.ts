@@ -5,11 +5,21 @@ import { io, type Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@/lib/game/types";
 import { useGameStore } from "@/lib/game/store";
 import { sfx, primeAudio } from "@/lib/game/sound";
-import { restoreSession, saveSession, updateSessionScore, clearSession } from "@/lib/game/session";
+import {
+  loadSession,
+  restoreSession,
+  saveSession,
+  clearSession,
+  setPendingRejoin,
+  getPendingRejoin,
+} from "@/lib/game/session";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socketSingleton: GameSocket | null = null;
+// Tracks whether we've ever successfully connected in this tab's lifetime,
+// so we can distinguish "initial connect" from "reconnect after a drop".
+let hasConnectedBefore = false;
 
 export function getSocket(): GameSocket {
   if (!socketSingleton) {
@@ -19,35 +29,112 @@ export function getSocket(): GameSocket {
         window.location.search.includes("XTransformPort") ||
         window.location.port === "81");
 
-    // In production: connect to NEXT_PUBLIC_GAME_SERVER_URL if set.
-    // If not set, fall back to same-origin (works if game server is behind
-    // the same reverse proxy / same Render service).
     const prodWsUrl = process.env.NEXT_PUBLIC_GAME_SERVER_URL || "";
 
     const url = isSandbox
       ? "/?XTransformPort=3003"
-      : prodWsUrl;  // empty string = same origin
-
-    // Log a warning if no game server URL is configured (helps debugging)
-    if (!isSandbox && !prodWsUrl && typeof window !== "undefined") {
-      console.warn(
-        "[DoodleDash] NEXT_PUBLIC_GAME_SERVER_URL not set. " +
-        "Connecting to same origin. If the game server is on a separate " +
-        "service, set NEXT_PUBLIC_GAME_SERVER_URL to its URL."
-      );
-    }
+      : prodWsUrl || "";
 
     socketSingleton = io(url, {
       path: "/socket.io",
       transports: ["websocket", "polling"],
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 8,
+      reconnectionAttempts: 12,
       reconnectionDelay: 1000,
       timeout: 12000,
     });
   }
   return socketSingleton;
+}
+
+// ----------------------------------------------------------------------------
+// Auto-rejoin: called whenever the socket (re)connects. If we have a saved
+// session (from localStorage) AND we don't currently have a live room in the
+// store, re-issue `room:join` with the saved identity. The server matches by
+// name and restores the seat (within its 20s grace window) or creates a new
+// seat if the room is still in lobby.
+// ----------------------------------------------------------------------------
+function attemptAutoRejoin(reason: "init" | "reconnect") {
+  const store = useGameStore.getState();
+  // On INITIAL connect: if we already have a room in the store (e.g. HMR
+  // preserved state), don't re-join — the server still has our socket.
+  if (reason === "init" && store.room) return;
+
+  // Try localStorage first (sync), then fall back to DB (async).
+  // This makes the triple-fallback work: localStorage → cookie → DB.
+  const syncSession = loadSession();
+  if (syncSession) {
+    doRejoin(syncSession, reason);
+    return;
+  }
+  // No localStorage session — try async DB restore (uses cookie token).
+  store.setRejoining(true);
+  restoreSession().then((session) => {
+    if (!session) {
+      store.setRejoining(false);
+      return;
+    }
+    console.log(`[session] restored from DB: ${session.roomCode} as ${session.name}`);
+    doRejoin(session, reason);
+  });
+}
+
+function doRejoin(session: ReturnType<typeof loadSession>, reason: "init" | "reconnect") {
+  if (!session) return;
+  const store = useGameStore.getState();
+  // Don't loop forever — only attempt on genuine reconnects.
+  if (reason === "reconnect" && getPendingRejoin() === session.roomCode) {
+    return;
+  }
+  setPendingRejoin(session.roomCode);
+  store.setRejoining(true);
+  // Safety: if the ack never fires, clear the rejoining flag after 10s.
+  const safety = setTimeout(() => {
+    if (getPendingRejoin() === session.roomCode) {
+      setPendingRejoin(null);
+      useGameStore.getState().setRejoining(false);
+    }
+  }, 10_000);
+  const socket = getSocket();
+  console.log(`[session] auto-rejoin "${session.roomCode}" (${reason})`);
+  store.setIdentity({
+    name: session.name,
+    avatar: session.avatar,
+    color: session.color,
+  });
+  if (session.customAvatar) store.setCustomAvatar(session.customAvatar);
+  socket.emit(
+    "room:join",
+    {
+      roomCode: session.roomCode,
+      name: session.name,
+      avatar: session.avatar,
+      color: session.color,
+      isSpectator: session.isSpectator,
+      customAvatar: session.customAvatar,
+    },
+    (res) => {
+      clearTimeout(safety);
+      setPendingRejoin(null);
+      store.setRejoining(false);
+      if (res.ok && res.playerId) {
+        store.setMeId(res.playerId);
+        console.log(`[session] rejoin OK (${reason})`);
+        saveSession({ ...session, savedAt: Date.now() });
+      } else {
+        console.log(`[session] rejoin failed: ${res.error}`);
+        clearSession();
+        store.setRoom(null);
+        store.setView("home");
+        if (typeof window !== "undefined") {
+          import("sonner").then(({ toast }) =>
+            toast.info("Your previous room is no longer available.")
+          );
+        }
+      }
+    }
+  );
 }
 
 export function useGameSocket() {
@@ -62,9 +149,14 @@ export function useGameSocket() {
     store.getState().setConnecting(true);
 
     const onConnect = () => {
+      const isReconnect = hasConnectedBefore;
+      hasConnectedBefore = true;
       store.getState().setConnected(true);
       store.getState().setConnecting(false);
-      attemptAutoRejoin(socket);
+      // Auto-rejoin on initial connect AND on reconnect after a drop.
+      // (Socket.io gives us a new id on reconnect; the server's grace window
+      // + name-match rejoin logic restores our seat.)
+      attemptAutoRejoin(isReconnect ? "reconnect" : "init");
     };
     const onDisconnect = () => {
       store.getState().setConnected(false);
@@ -199,15 +291,32 @@ export function useGameSocket() {
       }
       store.getState().setFinalScores(finalScores);
       sfx.gameEnd();
-      // Persist final score to session
-      const meId = store.getState().meId;
-      if (meId && finalScores[meId] != null) {
-        updateSessionScore(finalScores[meId]);
-      }
     };
     const onReactionShow = ({ reaction }: any) => {
       store.getState().addReaction(reaction.emoji, reaction.x);
       sfx.reaction();
+    };
+    const onChatTyping = ({ playerId, name }: any) => {
+      // Update typing indicator in store
+      const r = useGameStore.getState().room;
+      if (r) {
+        const typing = r.typing ?? [];
+        // Add if not already in list
+        if (!typing.find((t: any) => t.playerId === playerId)) {
+          useGameStore.getState().patchRoom({ typing: [...typing, { playerId, name, ts: Date.now() }] });
+        }
+      }
+      // Auto-clear after 3s
+      setTimeout(() => {
+        const r2 = useGameStore.getState().room;
+        if (r2 && r2.typing) {
+          useGameStore.getState().patchRoom({ typing: r2.typing.filter((t: any) => t.playerId !== playerId) });
+        }
+      }, 3000);
+    };
+    const onChatReaction = ({ messageId, emoji, playerId }: any) => {
+      // Could update message reactions in store — for now just log
+      console.log("[chat] reaction:", emoji, "on", messageId, "by", playerId);
     };
     const onQueenArrival = ({ name, avatar }: any) => {
       store.getState().setQueenArrival({ name, avatar, ts: Date.now() });
@@ -219,6 +328,10 @@ export function useGameSocket() {
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("connect_error", onConnectError);
+    // ── Race fix: if the socket is ALREADY connected (e.g. fast localhost
+    // link or HMR reuse), the 'connect' event fired before we registered
+    // the listener. Manually trigger onConnect so the store updates.
+    if (socket.connected) onConnect();
     socket.on("room:state", onRoomState);
     socket.on("room:player-joined", onPlayerJoined);
     socket.on("room:player-left", onPlayerLeft);
@@ -236,51 +349,14 @@ export function useGameSocket() {
     socket.on("game:round-end", onRoundEnd);
     socket.on("game:game-end", onGameEnd);
     socket.on("reaction:show", onReactionShow);
+    socket.on("chat:typing", onChatTyping);
+    socket.on("chat:reaction", onChatReaction);
     socket.on("game:queen-arrival", onQueenArrival);
-
-    // ---- Auto-reconnect on app foreground (mobile session persistence) ----
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        const socket = getSocket();
-        if (!socket.connected) {
-          console.log("[socket] App foregrounded — reconnecting...");
-          socket.connect();
-        }
-      } else if (document.visibilityState === "hidden") {
-        // Tab/backgrounded — the server's grace period handles this.
-        // The socket may disconnect; it'll auto-reconnect on return.
-        console.log("[socket] App backgrounded — socket may suspend, will reconnect on return");
-      }
-    };
-
-    // Reconnect on network online event
-    const onOnline = () => {
-      const socket = getSocket();
-      if (!socket.connected) {
-        console.log("[socket] Network back online — reconnecting...");
-        socket.connect();
-      }
-    };
-
-    // Prevent disconnect on page hide (keep connection alive in background)
-    const onPageHide = (e: PageTransitionEvent) => {
-      // Don't close the socket — let the OS suspend it
-      // It'll auto-reconnect when the app returns
-      e.preventDefault();
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("pagehide", onPageHide);
 
     // drawing events are consumed by the canvas component directly via getSocket(),
     // not here, to avoid re-renders.
 
     return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("pagehide", onPageHide);
-
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);
@@ -301,53 +377,10 @@ export function useGameSocket() {
       socket.off("game:round-end", onRoundEnd);
       socket.off("game:game-end", onGameEnd);
       socket.off("reaction:show", onReactionShow);
+      socket.off("chat:typing", onChatTyping);
+      socket.off("chat:reaction", onChatReaction);
       socket.off("game:queen-arrival", onQueenArrival);
       // NOTE: do NOT disconnect the singleton — we reuse it across views.
     };
   }, [store]);
-}
-
-let rejoinAttempted = false;
-
-async function attemptAutoRejoin(socket: GameSocket) {
-  if (rejoinAttempted) return;
-  const state = useGameStore.getState();
-  if (state.room) return; // already in a room
-
-  rejoinAttempted = true;
-
-  const session = await restoreSession();
-  if (!session) return;
-
-  console.log(`[session] Found session for room ${session.roomCode} as ${session.name} — attempting rejoin`);
-  useGameStore.getState().setIdentity({
-    name: session.name,
-    avatar: session.avatar,
-    color: session.color,
-  });
-
-  socket.emit(
-    "room:join",
-    {
-      roomCode: session.roomCode,
-      name: session.name,
-      avatar: session.avatar,
-      color: session.color,
-      customAvatar: session.customAvatar,
-    },
-    (res) => {
-      if (res.ok && res.playerId) {
-        useGameStore.getState().setMeId(res.playerId);
-        useGameStore.getState().setView("lobby");
-        console.log(`[session] Rejoined room ${session.roomCode} as ${session.name}`);
-      } else {
-        console.log(`[session] Rejoin failed: ${res.error}`);
-        clearSession();
-      }
-    }
-  );
-}
-
-export function resetRejoinFlag() {
-  rejoinAttempted = false;
 }

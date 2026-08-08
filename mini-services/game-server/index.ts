@@ -91,6 +91,10 @@ const roomWords = new Map<string, string>() // roomCode -> current word (mirror 
 const recentScores = new Map<string, Map<string, { score: number; ts: number; avatar: string; color: string }>>()
 const RECENT_SCORE_TTL_MS = 5 * 60 * 1000
 
+// Rate limiting maps (module-level so they persist across reconnects)
+const chatRateLimit = new Map<string, number>() // socketId → last send timestamp
+const typingRateLimit = new Map<string, number>() // socketId → last typing emit timestamp
+
 const MAX_PLAYERS = 12
 const CHOOSE_TIME_MS = 25_000
 const ROUND_END_DELAY_MS = 3_000 // brief word reveal, then instant advance
@@ -125,6 +129,23 @@ function announceQueen(io: Server, roomCode: string, name: string, avatar: strin
 
 const rid = () => Math.random().toString(36).slice(2, 11)
 const now = () => Date.now()
+
+/** Levenshtein distance between two strings (for word-leak detection). */
+function levenshteinDistance(a: string, b: string): number {
+  const m = a.length, n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost)
+    }
+  }
+  return dp[m][n]
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -662,11 +683,19 @@ function handleChat(io: Server, socket: Socket, content: string) {
   // (or a very close match) in chat, drop the message silently so it's
   // never revealed to non-guessers.
   const textLower = text.toLowerCase()
-  const isWordLeak = wordLower && wordLower.length > 2 && (
-    textLower === wordLower ||
-    textLower.includes(wordLower) ||
-    wordLower.includes(textLower) && textLower.length >= wordLower.length * 0.6
-  )
+  const isWordLeak = wordLower && wordLower.length > 2 && (() => {
+    // Exact match — always block
+    if (textLower === wordLower) return true
+    // For longer words (5+ chars): check if text contains the word as a substring
+    if (wordLower.length >= 5 && textLower.includes(wordLower)) return true
+    // For words 5+ chars: check close match (Levenshtein ≤ 2)
+    // Don't apply to short words (3-4 chars) — too many false positives
+    if (wordLower.length >= 5) {
+      const d = levenshteinDistance(textLower, wordLower)
+      if (d <= 2 && d > 0) return true
+    }
+    return false
+  })()
 
   // Drawer & spectators can't score; treat as plain chat (but filter word leaks)
   if (room.currentDrawerId === player.id || player.isSpectator) {
@@ -1383,11 +1412,68 @@ io.on('connection', (socket) => {
   })
 
   // ----- chat:send --------------------------------------------------------
+  // Rate limiting: max 1 message per 500ms per socket (module-level map)
   socket.on('chat:send', (payload) => {
     try {
+      const nowMs = Date.now()
+      const last = chatRateLimit.get(socket.id) ?? 0
+      if (nowMs - last < 500) return // drop spam
+      chatRateLimit.set(socket.id, nowMs)
       handleChat(io, socket, payload?.content ?? '')
     } catch (e) {
       console.error('[chat:send] error', e)
+    }
+  })
+
+  // ----- chat:typing ------------------------------------------------------
+  // Broadcast typing indicator to other players in the room (throttled).
+  socket.on('chat:typing', () => {
+    try {
+      const nowMs = Date.now()
+      const last = typingRateLimit.get(socket.id) ?? 0
+      if (nowMs - last < 2000) return // throttle: max 1 per 2s
+      typingRateLimit.set(socket.id, nowMs)
+
+      const lookup = players.get(socket.id)
+      if (!lookup) return
+      const room = rooms.get(lookup.roomId)
+      if (!room) return
+      const player = room.players.find((p) => p.id === socket.id)
+      if (!player) return
+      // Only broadcast during active play
+      if (room.stage !== 'drawing' && room.stage !== 'choosing') return
+      // Broadcast to everyone EXCEPT the sender
+      socket.to(room.code).emit('chat:typing', {
+        playerId: socket.id,
+        name: player.name,
+      })
+    } catch (e) {
+      console.error('[chat:typing] error', e)
+    }
+  })
+
+  // ----- chat:react -------------------------------------------------------
+  // Broadcast emoji reaction on a chat message to the room.
+  socket.on('chat:react', (payload) => {
+    try {
+      const lookup = players.get(socket.id)
+      if (!lookup) return
+      const room = rooms.get(lookup.roomId)
+      if (!room) return
+      const { messageId, emoji } = payload || {}
+      if (!messageId || !emoji) return
+      // Validate: emoji must be a short string (max 10 chars, no HTML)
+      const emojiStr = String(emoji).slice(0, 10).replace(/[<>&"']/g, '')
+      const msgIdStr = String(messageId).slice(0, 50).replace(/[<>&"']/g, '')
+      if (!emojiStr || !msgIdStr) return
+      // Broadcast to everyone in the room
+      io.to(room.code).emit('chat:reaction', {
+        messageId: msgIdStr,
+        emoji: emojiStr,
+        playerId: socket.id,
+      })
+    } catch (e) {
+      console.error('[chat:react] error', e)
     }
   })
 
@@ -1416,6 +1502,9 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     try {
       console.log(`[io] disconnected ${socket.id}`)
+      // Clean up rate-limiting entries
+      chatRateLimit.delete(socket.id)
+      typingRateLimit.delete(socket.id)
       removePlayerFromRoom(io, socket, socket.id)
     } catch (e) {
       console.error('[disconnect] error', e)

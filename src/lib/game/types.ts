@@ -118,6 +118,8 @@ export interface Room {
   timeLeft: number;
   paused: boolean; // true when insufficient players (drawer or guesser missing)
   chat: ChatMessage[];
+  /** who is currently typing (for typing indicator) */
+  typing?: { playerId: string; name: string; ts: number }[];
   /** finished drawings for the replay gallery (word + drawerId + strokes) */
   gallery: GalleryItem[];
 }
