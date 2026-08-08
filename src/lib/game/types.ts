@@ -197,7 +197,7 @@ export interface ServerToClientEvents {
   "game:hint": (payload: { wordHint: string }) => void;
   "chat:message": (payload: { message: ChatMessage }) => void;
   "chat:typing": (payload: { playerId: string; name: string }) => void;
-  "chat:reaction": (payload: { emoji: string; playerId: string }) => void;
+  "chat:reaction": (payload: { messageId: string; emoji: string; playerId: string }) => void;
   "reaction:show": (payload: { reaction: Reaction }) => void;
   "game:player-guessed": (payload: { playerId: string; points: number; drawerBonus: number }) => void;
   "game:round-end": (payload: { word: string; scores: Record<string, number>; galleryItem?: GalleryItem }) => void;
