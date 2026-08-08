@@ -20,9 +20,9 @@ export interface SavedSession {
   avatar: string;
   color: string;
   customAvatar: string | null;
-  isSpectator: boolean;
+  isSpectator?: boolean;
   score?: number;
-  savedAt: number; // epoch ms — used to expire stale sessions
+  savedAt?: number; // epoch ms — filled in by saveSession if missing
 }
 
 const KEY = "dd-session";
@@ -65,6 +65,9 @@ function deleteCookie(name: string): void {
 export function saveSession(s: SavedSession): void {
   if (typeof window === "undefined") return;
   try {
+    // Fill in defaults for optional fields
+    if (!s.savedAt) s.savedAt = Date.now();
+    if (s.isSpectator === undefined) s.isSpectator = false;
     // Ensure we have a session token
     if (!s.sessionToken) {
       s.sessionToken = generateToken();
