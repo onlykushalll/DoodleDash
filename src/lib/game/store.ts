@@ -21,6 +21,7 @@ interface GameState {
   // connection
   connected: boolean;
   connecting: boolean;
+  rejoining: boolean; // true while attempting auto-rejoin after reload/reconnect
   // identity
   meId: string | null;
   name: string;
@@ -55,11 +56,13 @@ interface GameState {
   canvasBorder: string;
   customAvatar: string | null;
   profileStats: { games: number; wins: number; bestScore: number; favoriteWord: string | null };
+  buddies: { code: string; name: string; avatar: string }[];
   queenArrival: { name: string; avatar: string; ts: number } | null;
 
   // actions (delegated to socket hook via setSocket ready)
   setConnected: (v: boolean) => void;
   setConnecting: (v: boolean) => void;
+  setRejoining: (v: boolean) => void;
   setMeId: (id: string | null) => void;
   setIdentity: (p: { name: string; avatar: string; color: string }) => void;
   setRoom: (r: Room | null) => void;
@@ -86,6 +89,8 @@ interface GameState {
   setNameColor: (c: string | null) => void;
   setCanvasBorder: (b: string) => void;
   setCustomAvatar: (d: string | null) => void;
+  addBuddy: (b: { code: string; name: string; avatar: string }) => void;
+  removeBuddy: (code: string) => void;
   setQueenArrival: (q: { name: string; avatar: string; ts: number } | null) => void;
   reset: () => void;
 }
@@ -111,6 +116,7 @@ const initialRoom: Room = {
 export const useGameStore = create<GameState>((set) => ({
   connected: false,
   connecting: false,
+  rejoining: false,
   meId: null,
   name: "",
   avatar: "🐱",
@@ -140,10 +146,12 @@ export const useGameStore = create<GameState>((set) => ({
   canvasBorder: "none",
   customAvatar: null,
   profileStats: { games: 0, wins: 0, bestScore: 0, favoriteWord: null },
+  buddies: [],
   queenArrival: null,
 
   setConnected: (v) => set({ connected: v }),
   setConnecting: (v) => set({ connecting: v }),
+  setRejoining: (v) => set({ rejoining: v }),
   setMeId: (id) => set({ meId: id }),
   setIdentity: (p) => set({ name: p.name, avatar: p.avatar, color: p.color }),
   setRoom: (r) => set({ room: r }),
@@ -180,6 +188,8 @@ export const useGameStore = create<GameState>((set) => ({
   setNameColor: (c) => set({ nameColor: c }),
   setCanvasBorder: (b) => set({ canvasBorder: b }),
   setCustomAvatar: (d) => set({ customAvatar: d }),
+  addBuddy: (b) => set((s) => ({ buddies: [...s.buddies, b] })),
+  removeBuddy: (code) => set((s) => ({ buddies: s.buddies.filter((b) => b.code !== code) })),
   setQueenArrival: (q) => set({ queenArrival: q }),
   reset: () =>
     set({
